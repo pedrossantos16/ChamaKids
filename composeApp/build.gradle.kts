@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -19,16 +18,9 @@ kotlin {
         }
     }
     
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
-        }
-    }
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
     
     sourceSets {
         commonMain.dependencies {
@@ -48,19 +40,17 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
         }
-        iosMain.dependencies {
-        }
     }
 }
 
 android {
     namespace = "com.pedro.ChamaKids"
-    compileSdk = 37
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.pedro.ChamaKids"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }
@@ -75,6 +65,8 @@ room {
 }
 
 dependencies {
+    // KSP para Room em KMP deve ser assim
+    add("kspCommonMainMetadata", libs.androidx.room.compiler)
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspIosArm64", libs.androidx.room.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room.compiler)
