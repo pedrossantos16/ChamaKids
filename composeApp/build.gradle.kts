@@ -18,9 +18,17 @@ kotlin {
         }
     }
     
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
+    // Configuração vital para o build do iOS
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "ComposeApp"
+            isStatic = true
+        }
+    }
     
     sourceSets {
         commonMain.dependencies {
@@ -65,8 +73,7 @@ room {
 }
 
 dependencies {
-    // KSP para Room em KMP deve ser assim
-    add("kspCommonMainMetadata", libs.androidx.room.compiler)
+    // KSP para Room (Ajustado para compatibilidade máxima)
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspIosArm64", libs.androidx.room.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room.compiler)
