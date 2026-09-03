@@ -1,9 +1,10 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Configuração de Plugins no nível raiz
 plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.multiplatform) apply false
-    alias(libs.plugins.jetbrains.compose) apply false
-    alias(libs.plugins.kotlin.compose) apply false
-    alias(libs.plugins.room) apply false
-    alias(libs.plugins.ksp) apply false
+    // Usamos IDs diretos para evitar conflitos de nomenclatura do TOML no servidor
+    id("com.android.application") version "9.3.2" apply false
+    id("org.jetbrains.kotlin.multiplatform") version "2.1.0" apply false
+    id("org.jetbrains.compose") version "1.7.3" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.1.0" apply false
+    id("androidx.room") version "2.7.0-alpha13" apply false
+    id("com.google.devtools.ksp") version "2.1.0-1.0.29" apply false
 }
