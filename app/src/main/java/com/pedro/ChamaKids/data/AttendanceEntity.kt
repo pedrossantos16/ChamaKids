@@ -20,6 +20,8 @@ data class AttendanceEntity(
     )
     val id: Int = 0,
 
+    val nome: String? = null,
+
     /*
      * Data e hora da chamada.
      *

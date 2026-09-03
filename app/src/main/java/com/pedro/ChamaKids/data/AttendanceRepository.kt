@@ -25,6 +25,7 @@ class AttendanceRepository(
      * A transação garante que tudo seja salvo junto.
      */
     suspend fun salvarChamada(
+        nome: String?,
         presencas: Map<Int, Boolean>
     ) {
 
@@ -34,6 +35,7 @@ class AttendanceRepository(
                 attendanceDao
                     .inserirChamada(
                         AttendanceEntity(
+                            nome = nome,
                             dataHora =
                                 System.currentTimeMillis()
                         )
@@ -74,6 +76,10 @@ class AttendanceRepository(
             )
     }
 
+    suspend fun buscarChamadaPorId(id: Int): AttendanceEntity? {
+        return attendanceDao.buscarPorId(id)
+    }
+
 
     /**
      * Retorna a frequência em percentual.
@@ -110,4 +116,23 @@ class AttendanceRepository(
                         total.toFloat()
                 ) * 100f
     }
+
+    suspend fun buscarHistorico(
+        memberId: Int
+    ): List<MemberAttendanceInfo> {
+        return attendanceDao
+            .buscarHistoricoDoMembro(
+                memberId
+            )
+    }
+
+    suspend fun excluirChamadas(ids: List<Int>) {
+        attendanceDao.excluirChamadas(ids)
+    }
+
+    suspend fun buscarMembroMaisPresente(inicio: Long, fim: Long) =
+        attendanceDao.membroMaisPresenteNoPeriodo(inicio, fim)
+
+    suspend fun buscarDiaMaiorAssiduidade(inicio: Long, fim: Long) =
+        attendanceDao.diaMaiorAssiduidadeNoPeriodo(inicio, fim)
 }

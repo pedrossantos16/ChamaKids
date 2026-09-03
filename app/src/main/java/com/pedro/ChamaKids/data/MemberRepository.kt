@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
  * Ela conversa com o Repository.
  */
 class MemberRepository(
-    private val memberDao: MemberDao
+    private val memberDao: MemberDao,
+    private val starDao: StarDao
 ) {
 
     /**
@@ -89,9 +90,6 @@ class MemberRepository(
     }
 
 
-    /**
-     * Permite recuperar um membro inativo.
-     */
     suspend fun reativar(
         id: Int
     ) {
@@ -100,4 +98,24 @@ class MemberRepository(
             id
         )
     }
+
+    // --- ESTRELAS E RANKING ---
+
+    suspend fun darEstrela(estrela: StarRecordEntity) {
+        starDao.inserirEstrela(estrela)
+    }
+
+    suspend fun buscarRanking(): List<MemberWithRanking> {
+        return starDao.buscarRanking()
+    }
+
+    suspend fun buscarHistoricoEstrelas(memberId: Int): List<Long> {
+        return starDao.buscarHistoricoEstrelas(memberId)
+    }
+
+    suspend fun buscarMembroMaisEstrelas(inicio: Long, fim: Long) =
+        starDao.membroMaisEstrelasNoPeriodo(inicio, fim)
+
+    suspend fun buscarDiaMaisEstrelas(inicio: Long, fim: Long) =
+        starDao.diaMaisEstrelasNoPeriodo(inicio, fim)
 }

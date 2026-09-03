@@ -55,6 +55,7 @@ class AttendanceViewModel(
      * somente depois de concluir o banco.
      */
     fun salvarChamada(
+        nome: String?,
         presencas: Map<Int, Boolean>,
         onSucesso: () -> Unit = {}
     ) {
@@ -63,6 +64,7 @@ class AttendanceViewModel(
 
             repository
                 .salvarChamada(
+                    nome,
                     presencas
                 )
 
@@ -75,6 +77,8 @@ class AttendanceViewModel(
     ) = repository.buscarRegistros(
         chamadaId
     )
+
+    suspend fun buscarChamadaPorId(id: Int) = repository.buscarChamadaPorId(id)
 
     fun carregarFrequencias(
         membrosIds: List<Int>
@@ -95,4 +99,28 @@ class AttendanceViewModel(
             _frequencias.value = resultado
         }
     }
+
+    suspend fun buscarHistorico(
+        memberId: Int
+    ) = repository.buscarHistorico(
+        memberId
+    )
+
+    suspend fun calcularFrequencia(
+        memberId: Int
+    ) = repository.calcularFrequencia(
+        memberId
+    )
+
+    fun excluirChamadas(ids: List<Int>) {
+        viewModelScope.launch {
+            repository.excluirChamadas(ids)
+        }
+    }
+
+    suspend fun buscarMembroMaisPresente(inicio: Long, fim: Long) =
+        repository.buscarMembroMaisPresente(inicio, fim)
+
+    suspend fun buscarDiaMaiorAssiduidade(inicio: Long, fim: Long) =
+        repository.buscarDiaMaiorAssiduidade(inicio, fim)
 }

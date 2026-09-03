@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.pedro.ChamaKids.data.ChamaKidsDatabase
 import com.pedro.ChamaKids.data.MemberEntity
 import com.pedro.ChamaKids.data.MemberRepository
+import com.pedro.ChamaKids.data.MemberWithRanking
+import com.pedro.ChamaKids.data.StarRecordEntity
 
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -50,7 +52,8 @@ class MemberViewModel(
      */
     private val repository =
         MemberRepository(
-            database.memberDao()
+            database.memberDao(),
+            database.starDao()
         )
 
 
@@ -169,4 +172,33 @@ class MemberViewModel(
 
         return repository.buscarPorId(id)
     }
+
+    // --- ESTRELAS E RANKING ---
+
+    fun darEstrela(memberId: Int, comentario: String?, onSucesso: () -> Unit) {
+        viewModelScope.launch {
+            repository.darEstrela(
+                StarRecordEntity(
+                    memberId = memberId,
+                    dataHora = System.currentTimeMillis(),
+                    comentario = comentario
+                )
+            )
+            onSucesso()
+        }
+    }
+
+    suspend fun buscarRanking(): List<MemberWithRanking> {
+        return repository.buscarRanking()
+    }
+
+    suspend fun buscarHistoricoEstrelas(memberId: Int): List<Long> {
+        return repository.buscarHistoricoEstrelas(memberId)
+    }
+
+    suspend fun buscarMembroMaisEstrelas(inicio: Long, fim: Long) =
+        repository.buscarMembroMaisEstrelas(inicio, fim)
+
+    suspend fun buscarDiaMaisEstrelas(inicio: Long, fim: Long) =
+        repository.buscarDiaMaisEstrelas(inicio, fim)
 }

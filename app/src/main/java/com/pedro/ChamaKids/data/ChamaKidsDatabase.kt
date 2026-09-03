@@ -21,20 +21,17 @@ import androidx.room.RoomDatabase
     entities = [
         MemberEntity::class,
         AttendanceEntity::class,
-        AttendanceRecordEntity::class
+        AttendanceRecordEntity::class,
+        StarRecordEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class ChamaKidsDatabase : RoomDatabase() {
 
-    /**
-     * Disponibiliza acesso às operações
-     * relacionadas aos membros.
-     */
     abstract fun memberDao(): MemberDao
-
     abstract fun attendanceDao(): AttendanceDao
+    abstract fun starDao(): StarDao
 
     companion object {
 

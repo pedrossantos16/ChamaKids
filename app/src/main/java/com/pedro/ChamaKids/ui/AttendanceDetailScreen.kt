@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.SolidColor
+import java.util.Calendar
 
 
 /**
@@ -68,6 +69,10 @@ fun AttendanceDetailScreen(
         )
     }
 
+    var membrosComEstrelaNoDia by remember {
+        mutableStateOf<Set<Int>>(emptySet())
+    }
+
     var carregando by remember {
         mutableStateOf(true)
     }
@@ -79,41 +84,40 @@ fun AttendanceDetailScreen(
 
     LaunchedEffect(chamadaId) {
 
+        val chamada = attendanceViewModel.buscarChamadaPorId(chamadaId)
+        val dataChamada = chamada?.dataHora ?: 0L
+
         registros =
             attendanceViewModel
                 .buscarRegistrosDaChamada(
                     chamadaId
                 )
 
-        /*
-         * Buscamos os membros correspondentes aos IDs
-         * registrados na chamada.
-         *
-         * Isso continua funcionando mesmo para membros
-         * atualmente inativos, porque buscarPorId()
-         * não filtra pelo campo "ativo".
-         */
-        val mapaMembros =
-            mutableMapOf<Int, MemberEntity>()
+        val mapaMembros = mutableMapOf<Int, MemberEntity>()
+        val idsComEstrela = mutableSetOf<Int>()
 
         registros.forEach { registro ->
-
-            val membro =
-                memberViewModel
-                    .buscarMembroPorId(
-                        registro.memberId
-                    )
-
+            val membro = memberViewModel.buscarMembroPorId(registro.memberId)
             if (membro != null) {
-
-                mapaMembros[
-                    registro.memberId
-                ] = membro
+                mapaMembros[registro.memberId] = membro
+                
+                // Verifica se o membro recebeu estrela no mesmo dia da chamada
+                val historicoEstrelas = memberViewModel.buscarHistoricoEstrelas(membro.id)
+                val temEstrelaNoDia = historicoEstrelas.any { tsEstrela ->
+                    val cal1 = Calendar.getInstance().apply { timeInMillis = dataChamada }
+                    val cal2 = Calendar.getInstance().apply { timeInMillis = tsEstrela }
+                    cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                            cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+                }
+                
+                if (temEstrelaNoDia) {
+                    idsComEstrela.add(membro.id)
+                }
             }
         }
 
         membros = mapaMembros
-
+        membrosComEstrelaNoDia = idsComEstrela
         carregando = false
     }
 
@@ -252,7 +256,11 @@ fun AttendanceDetailScreen(
                         colors =
                             CardDefaults.cardColors(
                                 containerColor =
-                                    Color.White
+                                    if (membrosComEstrelaNoDia.contains(registro.memberId)) {
+                                        Color(0xFFFFD600) // Amarelo estrela
+                                    } else {
+                                        Color.White
+                                    }
                             )
                     ) {
 
