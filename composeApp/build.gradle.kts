@@ -18,18 +18,11 @@ kotlin {
         }
     }
     
-    // Configuração vital para o build do iOS
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
-        }
-    }
-    
+    // Configuração estável do iOS
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
     sourceSets {
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -41,7 +34,6 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtime.ktx)
             implementation(libs.jetbrains.navigation.compose)
             implementation(libs.kotlinx.datetime)
-            
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
         }
@@ -49,12 +41,20 @@ kotlin {
             implementation(libs.androidx.activity.compose)
         }
     }
+
+    // Gerar Framework iOS
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
+        binaries.framework {
+            baseName = "ComposeApp"
+            isStatic = true
+        }
+    }
 }
 
 android {
     namespace = "com.pedro.ChamaKids"
     compileSdk = 35
-    buildToolsVersion = "35.0.0"
+    buildToolsVersion = "35.0.0" // Forçar versão moderna para ignorar a 25.0.3 do servidor
 
     defaultConfig {
         applicationId = "com.pedro.ChamaKids"
@@ -74,7 +74,6 @@ room {
 }
 
 dependencies {
-    // KSP para Room (Ajustado para compatibilidade máxima)
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspIosArm64", libs.androidx.room.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room.compiler)
