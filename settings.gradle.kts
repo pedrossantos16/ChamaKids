@@ -23,5 +23,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ChamaKids"
-include(":app")
+include(":composeApp")
  
