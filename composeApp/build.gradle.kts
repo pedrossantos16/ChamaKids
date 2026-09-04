@@ -30,9 +30,13 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.runtime.ktx)
+            
+            // Bibliotecas Multiplatform corretas
+            implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation(libs.androidx.lifecycle.viewmodel.compose)
             implementation(libs.jetbrains.navigation.compose)
             implementation(libs.kotlinx.datetime)
+            
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
         }
