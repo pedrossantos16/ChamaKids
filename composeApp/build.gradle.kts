@@ -15,8 +15,6 @@ kotlin {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
-            // Força o compilador a ignorar problemas de versão de ambiente
-            freeCompilerArgs.add("-Xjdk-release=11")
         }
     }
     
@@ -53,12 +51,12 @@ kotlin {
 
 android {
     namespace = "com.pedro.ChamaKids"
-    compileSdk = 34 // Versão mais estável para essa combinação
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.pedro.ChamaKids"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }
