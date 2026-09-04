@@ -4,8 +4,6 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
-      groups:
-        - apple_auth # Se você tiver conta Apple paga, conectaremos as chaves aqui
       vars:
         XCODE_PROJECT: "iosApp/iosApp.xcodeproj"
         XCODE_SCHEME: "iosApp"
@@ -14,18 +12,15 @@ workflows:
       cocoapods: default
     scripts:
       - name: Set up local.properties
-        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
       - name: Build iOS Framework
-        run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64
-      - name: Build iOS App (.ipa)
-        run: |
-          # Aqui ele usaria o xcodebuild para gerar o arquivo instalável
-          # Como você ainda não tem o arquivo .xcodeproj completo (que é gerado no Mac),
-          # o Codemagic vai tentar gerar um esqueleto básico.
-          echo "Compilando Framework Multiplataforma..."
+        script: ./gradlew :composeApp:linkReleaseFrameworkIosArm64
+      - name: Build Summary
+        script: |
+          echo "Framework gerado com sucesso!"
+          ls -R composeApp/build/bin/iosArm64/
     artifacts:
       - composeApp/build/bin/iosArm64/releaseFramework/ComposeApp.framework
-      - iosApp/build/ios/ipa/*.ipa
     publishing:
       email:
         recipients:
