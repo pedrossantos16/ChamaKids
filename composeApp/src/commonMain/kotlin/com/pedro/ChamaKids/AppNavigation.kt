@@ -42,9 +42,7 @@ fun AppNavigation() {
 
         composable("chamada") {
             AttendanceScreen(
-                onVoltar = {
-                    navController.popBackStack()
-                },
+                onVoltar = { navController.popBackStack() },
                 memberViewModel = memberViewModel,
                 attendanceViewModel = attendanceViewModel
             )

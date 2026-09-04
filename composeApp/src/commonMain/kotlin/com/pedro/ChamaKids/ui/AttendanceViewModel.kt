@@ -6,49 +6,31 @@ import com.pedro.ChamaKids.data.AttendanceRepository
 import com.pedro.ChamaKids.data.DatabaseProvider
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 class AttendanceViewModel : ViewModel() {
 
     private val database = DatabaseProvider.getDatabase()
+    private val repository = AttendanceRepository(database)
 
-    private val repository =
-        AttendanceRepository(
-            database
-        )
+    private val _frequencias = MutableStateFlow<Map<Int, Float?>>(emptyMap())
+    val frequencias: StateFlow<Map<Int, Float?>> = _frequencias.asStateFlow()
 
-    private val _frequencias =
-        MutableStateFlow<Map<Int, Float?>>(
-            emptyMap()
-        )
+    val chamadas = repository.chamadas.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
 
-    val frequencias: StateFlow<Map<Int, Float?>> =
-        _frequencias.asStateFlow()
-
-    val chamadas =
-        repository
-            .chamadas
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = emptyList()
-            )
-
-    fun salvarChamada(
-        nome: String?,
-        presencas: Map<Int, Boolean>,
-        onSucesso: () -> Unit = {}
-    ) {
+    fun salvarChamada(nome: String?, presencas: Map<Int, Boolean>, onSucesso: () -> Unit = {}) {
         viewModelScope.launch {
             repository.salvarChamada(nome, presencas)
             onSucesso()
         }
     }
 
-    suspend fun buscarRegistrosDaChamada(chamadaId: Int) = 
-        repository.buscarRegistros(chamadaId)
-
-    suspend fun buscarChamadaPorId(id: Int) = 
-        repository.buscarChamadaPorId(id)
+    suspend fun buscarRegistrosDaChamada(chamadaId: Int) = repository.buscarRegistros(chamadaId)
+    suspend fun buscarChamadaPorId(id: Int) = repository.buscarChamadaPorId(id)
 
     fun carregarFrequencias(membrosIds: List<Int>) {
         viewModelScope.launch {
@@ -60,11 +42,8 @@ class AttendanceViewModel : ViewModel() {
         }
     }
 
-    suspend fun buscarHistorico(memberId: Int) = 
-        repository.buscarHistorico(memberId)
-
-    suspend fun calcularFrequencia(memberId: Int) = 
-        repository.calcularFrequencia(memberId)
+    suspend fun buscarHistorico(memberId: Int) = repository.buscarHistorico(memberId)
+    suspend fun calcularFrequencia(memberId: Int) = repository.calcularFrequencia(memberId)
 
     fun excluirChamadas(ids: List<Int>) {
         viewModelScope.launch {
@@ -72,9 +51,6 @@ class AttendanceViewModel : ViewModel() {
         }
     }
 
-    suspend fun buscarMembroMaisPresente(inicio: Long, fim: Long) =
-        repository.buscarMembroMaisPresente(inicio, fim)
-
-    suspend fun buscarDiaMaiorAssiduidade(inicio: Long, fim: Long) =
-        repository.buscarDiaMaiorAssiduidade(inicio, fim)
+    suspend fun buscarMembroMaisPresente(inicio: Long, fim: Long) = repository.buscarMembroMaisPresente(inicio, fim)
+    suspend fun buscarDiaMaiorAssiduidade(inicio: Long, fim: Long) = repository.buscarDiaMaiorAssiduidade(inicio, fim)
 }
