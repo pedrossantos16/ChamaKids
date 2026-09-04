@@ -22,7 +22,6 @@ abstract class ChamaKidsDatabase : RoomDatabase() {
     abstract fun starDao(): StarDao
 }
 
-// O Room gera essa classe automaticamente para nós
 @Suppress("NO_ACTUAL_FOR_EXPECT")
 expect object ChamaKidsDatabaseConstructor : RoomDatabaseConstructor<ChamaKidsDatabase>
 

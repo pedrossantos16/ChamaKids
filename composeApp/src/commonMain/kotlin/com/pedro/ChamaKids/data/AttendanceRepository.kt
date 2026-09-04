@@ -1,6 +1,6 @@
 package com.pedro.ChamaKids.data
 
-import androidx.room.use
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Clock
 
@@ -16,29 +16,28 @@ class AttendanceRepository(
         nome: String?,
         presencas: Map<Int, Boolean>
     ) {
-        val chamadaId = attendanceDao.inserirChamada(
-            AttendanceEntity(
-                nome = nome,
-                dataHora = Clock.System.now().toEpochMilliseconds()
-            )
-        ).toInt()
+        database.withTransaction {
+            val chamadaId = attendanceDao.inserirChamada(
+                AttendanceEntity(
+                    nome = nome,
+                    dataHora = Clock.System.now().toEpochMilliseconds()
+                )
+            ).toInt()
 
-        val registros = presencas.map { (memberId, presente) ->
-            AttendanceRecordEntity(
-                attendanceId = chamadaId,
-                memberId = memberId,
-                presente = presente
-            )
+            val registros = presencas.map { (memberId, presente) ->
+                AttendanceRecordEntity(
+                    attendanceId = chamadaId,
+                    memberId = memberId,
+                    presente = presente
+                )
+            }
+
+            attendanceDao.inserirRegistros(registros)
         }
-
-        attendanceDao.inserirRegistros(registros)
     }
 
-    suspend fun buscarRegistros(chamadaId: Int) = 
-        attendanceDao.buscarRegistrosDaChamada(chamadaId)
-
-    suspend fun buscarChamadaPorId(id: Int) = 
-        attendanceDao.buscarPorId(id)
+    suspend fun buscarRegistros(chamadaId: Int) = attendanceDao.buscarRegistrosDaChamada(chamadaId)
+    suspend fun buscarChamadaPorId(id: Int) = attendanceDao.buscarPorId(id)
 
     suspend fun calcularFrequencia(memberId: Int): Float? {
         val total = attendanceDao.contarChamadasDoMembro(memberId)
@@ -47,11 +46,8 @@ class AttendanceRepository(
         return (presentes.toFloat() / total.toFloat()) * 100f
     }
 
-    suspend fun buscarHistorico(memberId: Int) = 
-        attendanceDao.buscarHistoricoDoMembro(memberId)
-
-    suspend fun excluirChamadas(ids: List<Int>) = 
-        attendanceDao.excluirChamadas(ids)
+    suspend fun buscarHistorico(memberId: Int) = attendanceDao.buscarHistoricoDoMembro(memberId)
+    suspend fun excluirChamadas(ids: List<Int>) = attendanceDao.excluirChamadas(ids)
 
     suspend fun buscarMembroMaisPresente(inicio: Long, fim: Long) =
         attendanceDao.membroMaisPresenteNoPeriodo(inicio, fim)
