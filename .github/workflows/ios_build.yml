@@ -18,16 +18,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # SOLUÇÃO 1: Aceitar licenças do SDK do Android (Conforme sua pesquisa)
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses || true
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # SOLUÇÃO 2: Forçar o Java Home para evitar o erro 25.0.3
       - name: Build Android APK
-        run: ./gradlew :composeApp:assembleDebug -Dorg.gradle.java.home=$JAVA_HOME_17_X64
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -46,16 +44,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Aceitar licenças também no ambiente do iPhone
       - name: Accept Android SDK licenses (iOS)
         run: yes | sdkmanager --licenses || true
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # Build do iPhone com Java Home travado
       - name: Build iOS Framework
-        run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64 -Dorg.gradle.java.home=$JAVA_HOME_17_X64
+        run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --no-daemon
 
       - name: Upload iOS Framework
         uses: actions/upload-artifact@v4
