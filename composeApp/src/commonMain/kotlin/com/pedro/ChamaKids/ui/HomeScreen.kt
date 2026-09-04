@@ -35,7 +35,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Gray)
+            .background(Color.White)
     ) {
         // Apenas 2 Faixas Amarelas nos Cantos Inferiores
         Canvas(modifier = Modifier.fillMaxSize()) {
