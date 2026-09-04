@@ -22,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
 import com.pedro.ChamaKids.ui.theme.ChamaKidsBlue
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun HomeScreen(
@@ -75,9 +78,9 @@ fun HomeScreen(
                 
                 for (i in 0 until pontos * 2) {
                     val raio = if (i % 2 == 0) raioExterno else raioInterno
-                    val angulo = Math.PI * i / pontos - Math.PI / 2
-                    val x = centro.x + (raio * Math.cos(angulo)).toFloat()
-                    val y = centro.y + (raio * Math.sin(angulo)).toFloat()
+                    val angulo = PI * i / pontos - PI / 2
+                    val x = centro.x + (raio * cos(angulo)).toFloat()
+                    val y = centro.y + (raio * sin(angulo)).toFloat()
                     if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
                 path.close()

@@ -1,6 +1,6 @@
 package com.pedro.ChamaKids.data
 
-import androidx.room.withTransaction
+import androidx.room.use
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Clock
 
@@ -8,37 +8,30 @@ class AttendanceRepository(
     private val database: ChamaKidsDatabase
 ) {
 
-    private val attendanceDao =
-        database.attendanceDao()
+    private val attendanceDao = database.attendanceDao()
 
-    val chamadas: Flow<List<AttendanceEntity>> =
-        attendanceDao.observarChamadas()
+    val chamadas: Flow<List<AttendanceEntity>> = attendanceDao.observarChamadas()
 
     suspend fun salvarChamada(
         nome: String?,
         presencas: Map<Int, Boolean>
     ) {
-        database.withTransaction {
-            val chamadaId =
-                attendanceDao
-                    .inserirChamada(
-                        AttendanceEntity(
-                            nome = nome,
-                            dataHora = Clock.System.now().toEpochMilliseconds()
-                        )
-                    )
-                    .toInt()
+        val chamadaId = attendanceDao.inserirChamada(
+            AttendanceEntity(
+                nome = nome,
+                dataHora = Clock.System.now().toEpochMilliseconds()
+            )
+        ).toInt()
 
-            val registros = presencas.map { (memberId, presente) ->
-                AttendanceRecordEntity(
-                    attendanceId = chamadaId,
-                    memberId = memberId,
-                    presente = presente
-                )
-            }
-
-            attendanceDao.inserirRegistros(registros)
+        val registros = presencas.map { (memberId, presente) ->
+            AttendanceRecordEntity(
+                attendanceId = chamadaId,
+                memberId = memberId,
+                presente = presente
+            )
         }
+
+        attendanceDao.inserirRegistros(registros)
     }
 
     suspend fun buscarRegistros(chamadaId: Int) = 

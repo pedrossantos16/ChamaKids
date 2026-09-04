@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun MenuScreen(
@@ -141,10 +144,10 @@ private fun IconeOpcaoMenu(tipo: IconeMenu) {
                     val points = 5
                     val innerRadius = radius / 2.5f
                     for (i in 0 until points * 2) {
-                        val angle = Math.PI * i / points - Math.PI / 2
+                        val angle = PI * i / points - PI / 2
                         val r = if (i % 2 == 0) radius else innerRadius
-                        val x = center.x + (r * Math.cos(angle)).toFloat()
-                        val y = center.y + (r * Math.sin(angle)).toFloat()
+                        val x = center.x + (r * cos(angle)).toFloat()
+                        val y = center.y + (r * sin(angle)).toFloat()
                         if (i == 0) moveTo(x, y) else lineTo(x, y)
                     }
                     close()
