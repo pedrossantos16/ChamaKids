@@ -15,6 +15,8 @@ kotlin {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
+            // Força o compilador a ignorar problemas de versão de ambiente
+            freeCompilerArgs.add("-Xjdk-release=11")
         }
     }
     
