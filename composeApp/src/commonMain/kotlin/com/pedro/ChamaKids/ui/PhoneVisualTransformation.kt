@@ -18,19 +18,19 @@ class PhoneVisualTransformation : VisualTransformation {
 
         val offsetMapping = object : OffsetMapping {
             override fun originalToTransformed(offset: Int): Int {
-                if (offset <= 0) return offset
-                if (offset <= 2) return offset + 1
-                if (offset <= 6) return offset + 3
-                if (offset <= 10) return offset + 4
-                return 14
+                if (offset <= 0) return 0
+                if (offset <= 1) return offset + 1
+                if (offset <= 2) return offset + 3
+                if (offset <= 6) return offset + 4
+                if (offset <= 10) return offset + 5
+                return out.length
             }
 
             override fun transformedToOriginal(offset: Int): Int {
                 if (offset <= 1) return 0
-                if (offset <= 4) return offset - 1
-                if (offset <= 9) return offset - 3
-                if (offset <= 14) return offset - 4
-                return 10
+                if (offset <= 4) return (offset - 1).coerceAtLeast(0)
+                if (offset <= 8) return (offset - 3).coerceAtLeast(0)
+                return (offset - 4).coerceIn(0, trimmed.length)
             }
         }
 
