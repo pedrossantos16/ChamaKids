@@ -36,6 +36,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodel.compose)
             implementation(libs.jetbrains.navigation.compose)
             implementation(libs.kotlinx.datetime)
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
             
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
