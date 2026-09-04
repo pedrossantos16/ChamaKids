@@ -13,6 +13,8 @@ workflows:
     scripts:
       - name: Set up local.properties
         script: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+      - name: Grant execute permission for gradlew
+        script: chmod +x gradlew
       - name: Build iOS Framework
         script: ./gradlew :composeApp:linkReleaseFrameworkIosArm64
       - name: Build Summary
