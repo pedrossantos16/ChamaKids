@@ -18,7 +18,6 @@ kotlin {
         }
     }
     
-    // Configuração estável do iOS
     iosX64()
     iosArm64()
     iosSimulatorArm64()
@@ -42,7 +41,6 @@ kotlin {
         }
     }
 
-    // Gerar Framework iOS
     targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
         binaries.framework {
             baseName = "ComposeApp"
@@ -53,13 +51,12 @@ kotlin {
 
 android {
     namespace = "com.pedro.ChamaKids"
-    compileSdk = 35
-    buildToolsVersion = "35.0.0" // Forçar versão moderna para ignorar a 25.0.3 do servidor
+    compileSdk = 34 // Versão mais estável para essa combinação
 
     defaultConfig {
         applicationId = "com.pedro.ChamaKids"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
