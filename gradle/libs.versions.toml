@@ -9,6 +9,8 @@ navigation = "2.8.0-alpha10"
 kotlinx-datetime = "0.6.1"
 androidx-lifecycle = "2.8.3"
 androidx-activity = "1.9.3"
+firebase-gitlive = "2.1.0"
+google-services = "4.4.2"
 
 [libraries]
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
@@ -19,6 +21,9 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite" }
 jetbrains-navigation-compose = { group = "org.jetbrains.androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime" }
+firebase-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "firebase-gitlive" }
+firebase-firestore = { group = "dev.gitlive", name = "firebase-firestore", version.ref = "firebase-gitlive" }
+firebase-storage = { group = "dev.gitlive", name = "firebase-storage", version.ref = "firebase-gitlive" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -27,3 +32,4 @@ jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "compose-multi
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }

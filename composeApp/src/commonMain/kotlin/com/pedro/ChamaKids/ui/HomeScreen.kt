@@ -7,7 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,12 +25,26 @@ import com.pedro.ChamaKids.ui.theme.ChamaKidsBlue
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import com.pedro.ChamaKids.UpdateChecker
 
 @Composable
 fun HomeScreen(
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    userViewModel: UserViewModel
 ) {
     val yellowStar = Color(0xFFFFD600)
+    val currentUser by userViewModel.currentUser.collectAsState()
+    val isBlocked by userViewModel.isBlocked.collectAsState()
+    val usuarios by userViewModel.usuarios.collectAsState()
+
+    // Check for updates
+    LaunchedEffect(Unit) {
+        val currentVersionCode = 1 
+        val update = UpdateChecker.checkUpdate(currentVersionCode)
+        if (update != null) {
+            // Futuramente mostrar diálogo
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -176,6 +190,20 @@ fun HomeScreen(
             }
             
             Spacer(modifier = Modifier.weight(1f))
+            
+            if (currentUser != null) {
+                Text(
+                    text = "Logado como: ${currentUser?.nome}",
+                    modifier = Modifier.padding(bottom = 40.dp).clickable { userViewModel.logout() },
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        // Overlay de Segurança
+        if ((currentUser == null || isBlocked) && usuarios.isNotEmpty()) {
+            SecurityOverlay(viewModel = userViewModel)
         }
     }
 }

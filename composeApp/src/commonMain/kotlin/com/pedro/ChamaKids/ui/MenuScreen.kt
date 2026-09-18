@@ -39,7 +39,8 @@ fun MenuScreen(
     onRanking: () -> Unit,
     onRelatorio: () -> Unit,
     onGuia: () -> Unit,
-    onHistorico: () -> Unit
+    onHistorico: () -> Unit,
+    onUsuarios: () -> Unit
 ) {
     ChamaKidsScreen(
         titulo = null,
@@ -83,12 +84,14 @@ fun MenuScreen(
             OpcaoMenu("GUIA", IconeMenu.GUIA, onGuia)
             Spacer(modifier = Modifier.height(24.dp))
             OpcaoMenu("HISTÓRICO", IconeMenu.HISTORICO, onHistorico)
+            Spacer(modifier = Modifier.height(24.dp))
+            OpcaoMenu("USUÁRIOS", IconeMenu.USUARIOS, onUsuarios)
         }
     }
 }
 
 private enum class IconeMenu {
-    CHAMADA, MEMBROS, LISTA, CLASSIFICAR, RANKING, RELATORIO, GUIA, HISTORICO
+    CHAMADA, MEMBROS, LISTA, CLASSIFICAR, RANKING, RELATORIO, GUIA, HISTORICO, USUARIOS
 }
 
 @Composable
@@ -175,6 +178,10 @@ private fun IconeOpcaoMenu(tipo: IconeMenu) {
                 drawCircle(cor, 10.dp.toPx(), Offset(14.dp.toPx(), 14.dp.toPx()), style = Stroke(largura))
                 drawLine(cor, Offset(14.dp.toPx(), 14.dp.toPx()), Offset(14.dp.toPx(), 8.dp.toPx()), largura, StrokeCap.Round)
                 drawLine(cor, Offset(14.dp.toPx(), 14.dp.toPx()), Offset(19.dp.toPx(), 14.dp.toPx()), largura, StrokeCap.Round)
+            }
+            IconeMenu.USUARIOS -> {
+                drawCircle(cor, 5.dp.toPx(), Offset(14.dp.toPx(), 9.dp.toPx()), style = Stroke(largura))
+                drawArc(cor, 200f, 140f, false, Offset(7.dp.toPx(), 15.dp.toPx()), androidx.compose.ui.geometry.Size(14.dp.toPx(), 10.dp.toPx()), style = Stroke(largura, cap = StrokeCap.Round))
             }
         }
     }

@@ -55,5 +55,11 @@ data class MemberEntity(
      *
      * Isso preserva o histórico de chamadas.
      */
-    val ativo: Boolean = true
+    val ativo: Boolean = true,
+
+    // Sincronia e Auditoria
+    val serverId: String? = null,
+    val criadoPor: String? = null,
+    val ultimaAlteracaoPor: String? = null,
+    val lastUpdated: Long = 0
 )

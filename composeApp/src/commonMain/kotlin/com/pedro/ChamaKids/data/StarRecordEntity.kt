@@ -20,5 +20,10 @@ data class StarRecordEntity(
     val id: Int = 0,
     val memberId: Int,
     val dataHora: Long,
-    val comentario: String?
+    val comentario: String?,
+    
+    // Sincronia e Auditoria
+    val serverId: String? = null,
+    val criadoPor: String? = null,
+    val lastUpdated: Long = 0
 )

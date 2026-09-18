@@ -61,5 +61,9 @@ data class AttendanceRecordEntity(
      * true  = presente
      * false = faltou
      */
-    val presente: Boolean
+    val presente: Boolean,
+
+    // Sincronia
+    val serverId: String? = null,
+    val lastUpdated: Long = 0
 )

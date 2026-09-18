@@ -16,6 +16,7 @@ class MainActivity : ComponentActivity() {
         val database = getRoomDatabase(builder)
         DatabaseProvider.initialize(database)
         PdfGenerator.setContext(this)
+        DeviceIdentifier.setContext(this)
 
         setContent {
             App()

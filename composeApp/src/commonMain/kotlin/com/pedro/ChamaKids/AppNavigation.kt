@@ -21,12 +21,15 @@ import com.pedro.ChamaKids.ui.ClassifyDetailScreen
 import com.pedro.ChamaKids.ui.RankingScreen
 import com.pedro.ChamaKids.ui.ReportScreen
 import com.pedro.ChamaKids.ui.GuideScreen
+import com.pedro.ChamaKids.ui.UserViewModel
+import com.pedro.ChamaKids.ui.UsersScreen
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val memberViewModel: MemberViewModel = viewModel()
     val attendanceViewModel: AttendanceViewModel = viewModel()
+    val userViewModel: UserViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -36,7 +39,8 @@ fun AppNavigation() {
             HomeScreen(
                 onMenuClick = {
                     navController.navigate("menu")
-                }
+                },
+                userViewModel = userViewModel
             )
         }
 
@@ -58,7 +62,8 @@ fun AppNavigation() {
                 onRanking = { navController.navigate("ranking") },
                 onRelatorio = { navController.navigate("relatorio") },
                 onGuia = { navController.navigate("guia") },
-                onHistorico = { navController.navigate("historico") }
+                onHistorico = { navController.navigate("historico") },
+                onUsuarios = { navController.navigate("usuarios") }
             )
         }
 
@@ -181,6 +186,13 @@ fun AppNavigation() {
                     onVoltar = { navController.popBackStack() }
                 )
             }
+        }
+
+        composable("usuarios") {
+            UsersScreen(
+                onVoltar = { navController.popBackStack() },
+                viewModel = userViewModel
+            )
         }
     }
 }

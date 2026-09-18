@@ -10,9 +10,11 @@ import androidx.room.RoomDatabaseConstructor
         MemberEntity::class,
         AttendanceEntity::class,
         AttendanceRecordEntity::class,
-        StarRecordEntity::class
+        StarRecordEntity::class,
+        UserEntity::class,
+        SecurityStateEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @ConstructedBy(ChamaKidsDatabaseConstructor::class)
@@ -20,6 +22,8 @@ abstract class ChamaKidsDatabase : RoomDatabase() {
     abstract fun memberDao(): MemberDao
     abstract fun attendanceDao(): AttendanceDao
     abstract fun starDao(): StarDao
+    abstract fun userDao(): UserDao
+    abstract fun securityDao(): SecurityDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

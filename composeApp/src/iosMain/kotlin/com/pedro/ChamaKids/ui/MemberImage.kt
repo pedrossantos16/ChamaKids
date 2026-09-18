@@ -1,6 +1,7 @@
 package com.pedro.ChamaKids.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -12,11 +13,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 
 @Composable
-actual fun MemberImage(fotoUri: String?, modifier: Modifier, placeholderText: String) {
+actual fun MemberImage(
+    fotoUri: String?, 
+    modifier: Modifier, 
+    placeholderText: String,
+    onClick: (() -> Unit)?
+) {
     Box(
         modifier = modifier
             .clip(CircleShape)
-            .background(Color(0xFFD9D9D9)),
+            .background(Color(0xFFD9D9D9))
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         Text(

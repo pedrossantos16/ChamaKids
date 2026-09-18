@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.google.services)
 }
 
 kotlin {
@@ -40,6 +41,16 @@ kotlin {
             
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
+            
+            // Firebase KMP
+            implementation(libs.firebase.auth)
+            implementation(libs.firebase.firestore)
+            implementation(libs.firebase.storage)
+            
+            // Ktor para check de update
+            implementation("io.ktor:ktor-client-core:2.3.12")
+            implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)

@@ -20,6 +20,7 @@ fun GuideScreen(onVoltar: () -> Unit) {
     var expandidoRelatorio by remember { mutableStateOf(false) }
     var expandidoHistorico by remember { mutableStateOf(false) }
     var expandidoChamada by remember { mutableStateOf(false) }
+    var expandidoUsuarios by remember { mutableStateOf(false) }
 
     ChamaKidsScreen(titulo = "GUIA", onVoltar = onVoltar) {
         Column(
@@ -67,6 +68,12 @@ fun GuideScreen(onVoltar: () -> Unit) {
             SecaoGuia("HISTÓRICO", expandidoHistorico, { expandidoHistorico = !expandidoHistorico }, 
                 "Consultar chamadas passadas.", 
                 "Veja os detalhes de cada dia, quem ganhou estrela e exclua registros antigos se necessário.")
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SecaoGuia("USUÁRIOS", expandidoUsuarios, { expandidoUsuarios = !expandidoUsuarios }, 
+                "Controle de acesso e segurança.", 
+                "Cadastre operadores e defina frases secretas. Isso bloqueia o app para pessoas não autorizadas.")
             
             Spacer(modifier = Modifier.height(40.dp))
         }

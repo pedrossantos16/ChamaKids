@@ -44,10 +44,9 @@ fun AddMemberScreen(
     var dataNascimento by remember { mutableStateOf<LocalDate?>(null) }
     var fotoUri by remember { mutableStateOf<String?>(null) }
 
-    /*
-    // TODO: Implementar seletor de foto via biblioteca Multiplatform (ex: Peekaboo)
-    // No Android era usado rememberLauncherForActivityResult(ActivityResultContracts.GetContent())
-    */
+    val pickPhoto = rememberPhotoPicker { uri ->
+        fotoUri = uri
+    }
 
     var mostrarCalendario by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
@@ -74,9 +73,7 @@ fun AddMemberScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Card(
-                        modifier = Modifier.size(180.dp).clickable { 
-                            // TODO: Chamar o seletor de foto KMP aqui
-                        },
+                        modifier = Modifier.size(180.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
@@ -84,7 +81,8 @@ fun AddMemberScreen(
                             MemberImage(
                                 fotoUri = fotoUri,
                                 modifier = Modifier.fillMaxSize(),
-                                placeholderText = "+ FOTO"
+                                placeholderText = "+ FOTO",
+                                onClick = pickPhoto
                             )
                         }
                     }

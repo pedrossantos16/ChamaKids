@@ -28,5 +28,10 @@ data class AttendanceEntity(
      * Vamos salvar em milissegundos porque isso
      * facilita ordenação, comparação e conversão.
      */
-    val dataHora: Long
+    val dataHora: Long,
+
+    // Sincronia e Auditoria
+    val serverId: String? = null,
+    val criadoPor: String? = null,
+    val lastUpdated: Long = 0
 )
