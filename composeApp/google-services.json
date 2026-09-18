@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "179013214535",
+    "project_id": "chamakids-3ade9",
+    "storage_bucket": "chamakids-3ade9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179013214535:android:bffdc4dde10e12f7a06c62",
+        "android_client_info": {
+          "package_name": "com.pedro.ChamaKids"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN4cMroojtanfxHe2YYvFQLffUL4Ytrjs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
