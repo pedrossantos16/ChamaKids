@@ -32,6 +32,12 @@ class AttendanceRepository(
         }
 
         attendanceDao.inserirRegistros(registros)
+
+        // Sincroniza com Firebase
+        val chamada = attendanceDao.buscarPorId(chamadaId)
+        if (chamada != null) {
+            FirebaseSyncManager.syncAttendance(chamada, registros)
+        }
     }
 
     suspend fun buscarRegistros(chamadaId: Int) = attendanceDao.buscarRegistrosDaChamada(chamadaId)

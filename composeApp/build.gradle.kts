@@ -7,7 +7,8 @@ plugins {
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.room)
+    // Removed Room plugin due to space-in-path KSP issue. 
+    // Room will still work via KSP dependencies below.
     alias(libs.plugins.google.services)
 }
 
@@ -15,7 +16,7 @@ kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
     
@@ -77,14 +78,12 @@ android {
         versionName = "1.0"
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
+// Room schema export is disabled in Database class, so no schemaDirectory needed here.
 
 dependencies {
     add("kspAndroid", libs.androidx.room.compiler)

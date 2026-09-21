@@ -43,10 +43,12 @@ class MemberRepository(
     suspend fun adicionar(
         membro: MemberEntity
     ): Long {
-
-        return memberDao.inserir(
-            membro
-        )
+        val id = memberDao.inserir(membro)
+        val novoMembro = memberDao.buscarPorId(id.toInt())
+        if (novoMembro != null) {
+            FirebaseSyncManager.syncMember(novoMembro)
+        }
+        return id
     }
 
 
@@ -56,10 +58,8 @@ class MemberRepository(
     suspend fun atualizar(
         membro: MemberEntity
     ) {
-
-        memberDao.atualizar(
-            membro
-        )
+        memberDao.atualizar(membro)
+        FirebaseSyncManager.syncMember(membro)
     }
 
 
