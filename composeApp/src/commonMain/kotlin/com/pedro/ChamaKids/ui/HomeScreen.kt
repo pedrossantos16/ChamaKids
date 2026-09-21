@@ -30,6 +30,7 @@ import com.pedro.ChamaKids.UpdateChecker
 import com.pedro.ChamaKids.UpdateInfo
 import com.pedro.ChamaKids.ApkInstaller
 import kotlinx.coroutines.delay
+import com.pedro.ChamaKids.data.FirebaseSyncManager
 
 @Composable
 fun HomeScreen(
@@ -40,7 +41,8 @@ fun HomeScreen(
     val currentUser by userViewModel.currentUser.collectAsState()
     val isBlocked by userViewModel.isBlocked.collectAsState()
     val isFirstAccess by userViewModel.isFirstAccess.collectAsState()
-    val syncing by com.pedro.ChamaKids.data.FirebaseSyncManager.syncing.collectAsState()
+    val syncing by FirebaseSyncManager.syncing.collectAsState()
+    val syncError by FirebaseSyncManager.errorMessage.collectAsState()
 
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
     var downloadProgress by remember { mutableStateOf<Float?>(null) }
@@ -240,7 +242,8 @@ fun HomeScreen(
         }
 
         // Rastreador de Erros
-        if (updateError != null) {
+        val finalError = updateError ?: syncError
+        if (finalError != null) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -248,7 +251,7 @@ fun HomeScreen(
                     .background(Color.Red.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
                     .padding(8.dp)
             ) {
-                Text(text = "Erro Update: $updateError", color = Color.White, fontSize = 12.sp)
+                Text(text = "Erro: $finalError", color = Color.White, fontSize = 12.sp)
             }
         }
 
