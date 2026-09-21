@@ -147,6 +147,7 @@ class UserViewModel : ViewModel() {
     fun cadastrarUsuario(nome: String, frase: String) {
         viewModelScope.launch {
             val user = UserEntity(
+                serverId = com.pedro.ChamaKids.IdGenerator.generate(),
                 nome = nome,
                 fraseSecreta = frase,
                 lastUpdated = Clock.System.now().toEpochMilliseconds()

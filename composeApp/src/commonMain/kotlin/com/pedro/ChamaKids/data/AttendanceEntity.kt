@@ -2,7 +2,6 @@ package com.pedro.ChamaKids.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.pedro.ChamaKids.IdGenerator
 
 @Entity(
     tableName = "attendances"
@@ -10,7 +9,7 @@ import com.pedro.ChamaKids.IdGenerator
 data class AttendanceEntity(
 
     @PrimaryKey
-    val serverId: String = IdGenerator.generate(),
+    val serverId: String,
 
     val nome: String? = null,
 

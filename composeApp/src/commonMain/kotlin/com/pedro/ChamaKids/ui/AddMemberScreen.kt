@@ -226,6 +226,7 @@ fun AddMemberScreen(
                 onClick = {
                     if (nome.isNotBlank()) {
                         val novoMembro = MemberEntity(
+                            serverId = "", // Gerado no Repository
                             nome = nome.trim(),
                             cpf = cpf,
                             rg = rg,

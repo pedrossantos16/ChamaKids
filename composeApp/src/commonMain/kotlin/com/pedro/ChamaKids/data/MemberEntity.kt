@@ -10,7 +10,7 @@ import com.pedro.ChamaKids.IdGenerator
 data class MemberEntity(
 
     @PrimaryKey
-    val serverId: String = IdGenerator.generate(),
+    val serverId: String,
 
     val nome: String,
 

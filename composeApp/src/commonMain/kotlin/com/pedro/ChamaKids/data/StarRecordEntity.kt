@@ -4,7 +4,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
 import androidx.room.Index
-import com.pedro.ChamaKids.IdGenerator
 
 @Entity(
     tableName = "star_records",
@@ -20,7 +19,7 @@ import com.pedro.ChamaKids.IdGenerator
 )
 data class StarRecordEntity(
     @PrimaryKey
-    val serverId: String = IdGenerator.generate(),
+    val serverId: String,
     val memberId: String, // serverId do membro
     val dataHora: Long,
     val comentario: String?,

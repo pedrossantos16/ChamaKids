@@ -62,14 +62,14 @@ class MemberViewModel : ViewModel() {
 
     fun darEstrela(memberId: String, comentario: String?, criadoPor: String?, onSucesso: () -> Unit) {
         viewModelScope.launch {
-            repository.darEstrela(
-                StarRecordEntity(
-                    memberId = memberId,
-                    dataHora = Clock.System.now().toEpochMilliseconds(),
-                    comentario = comentario,
-                    criadoPor = criadoPor
-                )
+            val star = StarRecordEntity(
+                serverId = com.pedro.ChamaKids.IdGenerator.generate(),
+                memberId = memberId,
+                dataHora = Clock.System.now().toEpochMilliseconds(),
+                comentario = comentario,
+                criadoPor = criadoPor
             )
+            repository.darEstrela(star)
             onSucesso()
         }
     }

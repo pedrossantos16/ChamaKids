@@ -10,8 +10,10 @@ class MemberRepository(
     val todosMembros: Flow<List<MemberEntity>> = memberDao.observarTodosMembros()
 
     suspend fun adicionar(membro: MemberEntity) {
-        memberDao.inserir(membro)
-        FirebaseSyncManager.syncMember(membro)
+        val serverId = com.pedro.ChamaKids.IdGenerator.generate()
+        val membroComId = membro.copy(serverId = serverId)
+        memberDao.inserir(membroComId)
+        FirebaseSyncManager.syncMember(membroComId)
     }
 
     suspend fun atualizar(membro: MemberEntity) {

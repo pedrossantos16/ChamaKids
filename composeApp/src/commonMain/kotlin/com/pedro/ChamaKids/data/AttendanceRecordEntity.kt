@@ -3,7 +3,6 @@ package com.pedro.ChamaKids.data
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import com.pedro.ChamaKids.IdGenerator
 
 @Entity(
     tableName = "attendance_records",
@@ -14,14 +13,12 @@ import com.pedro.ChamaKids.IdGenerator
     ],
 
     foreignKeys = [
-
         ForeignKey(
             entity = AttendanceEntity::class,
             parentColumns = ["serverId"],
             childColumns = ["attendanceId"],
             onDelete = ForeignKey.CASCADE
         ),
-
         ForeignKey(
             entity = MemberEntity::class,
             parentColumns = ["serverId"],
@@ -36,14 +33,9 @@ import com.pedro.ChamaKids.IdGenerator
     ]
 )
 data class AttendanceRecordEntity(
-
     val attendanceId: String, // serverId da chamada
-
     val memberId: String, // serverId do membro
-
     val presente: Boolean,
-
-    // Sincronia
-    val serverId: String = IdGenerator.generate(),
+    val serverId: String,
     val lastUpdated: Long = 0
 )
