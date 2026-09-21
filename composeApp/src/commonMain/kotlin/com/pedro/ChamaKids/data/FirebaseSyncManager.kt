@@ -4,7 +4,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.datetime.Clock
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
 
 object FirebaseSyncManager {
     private val firestore by lazy { Firebase.firestore }
@@ -77,9 +77,9 @@ object FirebaseSyncManager {
     }
 
     fun startSync(database: ChamaKidsDatabase) {
+        // Listener em Tempo Real para Membros
         scope.launch {
             try {
-                // Membros
                 firestore.collection("members").snapshots().collect { snapshot ->
                     snapshot.documents.forEach { doc ->
                         val data = doc.data<Map<String, Any?>>()
@@ -108,9 +108,27 @@ object FirebaseSyncManager {
             } catch (_: Exception) { }
         }
 
+        // Listener em Tempo Real para Usuários
         scope.launch {
             try {
-                // Chamadas
+                firestore.collection("users").snapshots().collect { snapshot ->
+                    snapshot.documents.forEach { doc ->
+                        val data = doc.data<Map<String, Any?>>()
+                        val user = UserEntity(
+                            serverId = doc.id,
+                            nome = data["nome"] as? String ?: "",
+                            fraseSecreta = data["fraseSecreta"] as? String ?: "",
+                            lastUpdated = (data["lastUpdated"] as? Number)?.toLong() ?: 0
+                        )
+                        database.userDao().inserir(user)
+                    }
+                }
+            } catch (_: Exception) { }
+        }
+
+        // Listener em Tempo Real para Chamadas
+        scope.launch {
+            try {
                 firestore.collection("attendances").snapshots().collect { snapshot ->
                     snapshot.documents.forEach { doc ->
                         val data = doc.data<Map<String, Any?>>()
@@ -123,9 +141,9 @@ object FirebaseSyncManager {
                         )
                         database.attendanceDao().inserirChamada(attendance)
                         
-                        // Sincronizar registros (Usando um fetch simples para evitar listeners aninhados infinitos)
-                        val recordSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
-                        val records = recordSnapshot.documents.map { rDoc ->
+                        // Sincronizar registros da chamada (Sub-coleção)
+                        val recordsSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
+                        val records = recordsSnapshot.documents.map { rDoc ->
                             val rData = rDoc.data<Map<String, Any?>>()
                             AttendanceRecordEntity(
                                 serverId = rDoc.id,
@@ -141,9 +159,9 @@ object FirebaseSyncManager {
             } catch (_: Exception) { }
         }
 
+        // Listener em Tempo Real para Estrelas
         scope.launch {
             try {
-                // Estrelas
                 firestore.collection("stars").snapshots().collect { snapshot ->
                     snapshot.documents.forEach { doc ->
                         val data = doc.data<Map<String, Any?>>()
