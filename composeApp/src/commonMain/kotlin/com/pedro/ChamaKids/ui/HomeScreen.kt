@@ -41,6 +41,7 @@ fun HomeScreen(
     val currentUser by userViewModel.currentUser.collectAsState()
     val isBlocked by userViewModel.isBlocked.collectAsState()
     val isFirstAccess by userViewModel.isFirstAccess.collectAsState()
+    val isFrozen by userViewModel.isFrozen.collectAsState()
     val syncing by FirebaseSyncManager.syncing.collectAsState()
     val syncError by FirebaseSyncManager.errorMessage.collectAsState()
 
@@ -48,10 +49,12 @@ fun HomeScreen(
     var downloadProgress by remember { mutableStateOf<Float?>(null) }
     var updateError by remember { mutableStateOf<String?>(null) }
 
+    val isAdmin = currentUser?.nome == "ADMINISTRADOR"
+
     // Check for updates
     LaunchedEffect(Unit) {
         try {
-            val currentVersionCode = 3 
+            val currentVersionCode = 4
             val update = UpdateChecker.checkUpdate(currentVersionCode)
             if (update != null) {
                 updateInfo = update
@@ -117,7 +120,7 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(80.dp))
 
-            // Estrela Superior (Proporção do desenho)
+            // Estrela Superior
             Canvas(modifier = Modifier.size(120.dp)) {
                 val centro = Offset(size.width / 2, size.height / 2)
                 val pontos = 5
@@ -138,21 +141,20 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(60.dp))
 
-            // Título Chama Kids com Faixa Azul e Detalhes Brancos
+            // Título Chama Kids
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .clip(RoundedCornerShape(0.dp)) // Garante o recorte nas bordas
+                    .clip(RoundedCornerShape(0.dp))
                     .background(ChamaKidsBlue)
                     .border(width = 2.dp, color = Color.Black),
                 contentAlignment = Alignment.Center
             ) {
-                // Faixas Brancas em Ângulo (Fundo da faixa azul)
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val larguraFaixaBranca = 20.dp.toPx()
                     val espacamento = 60.dp.toPx()
-                    val corBranca = Color.White.copy(alpha = 0.3f) // Branco suave para não ofuscar o texto
+                    val corBranca = Color.White.copy(alpha = 0.3f)
 
                     for (i in -10..20) {
                         val xStart = i * espacamento
@@ -206,7 +208,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(80.dp))
 
-            // Botão Avançar (Proporção do desenho)
+            // Botão Avançar
             Box(
                 modifier = Modifier
                     .size(width = 150.dp, height = 85.dp)
@@ -236,6 +238,42 @@ fun HomeScreen(
             }
         }
 
+        // Aviso de Manutenção (Congelamento)
+        if (isFrozen && !isAdmin && !isFirstAccess) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.85f))
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "⚠",
+                        fontSize = 80.sp,
+                        color = Color(0xFFFFD600)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "APLICATIVO EM\nMANUTENÇÃO",
+                        fontSize = 32.sp,
+                        lineHeight = 36.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "O administrador está realizando ajustes.\nTente novamente em instantes.",
+                        fontSize = 16.sp,
+                        color = Color.LightGray,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 40.dp)
+                    )
+                }
+            }
+        }
+
         // Overlay de Segurança
         if (!isFirstAccess && (currentUser == null || isBlocked)) {
             SecurityOverlay(viewModel = userViewModel)
@@ -255,7 +293,7 @@ fun HomeScreen(
             }
         }
 
-        // Indicador de Sincronia Nuvem
+        // Indicador de Sincronia
         if (syncing) {
             Box(
                 modifier = Modifier

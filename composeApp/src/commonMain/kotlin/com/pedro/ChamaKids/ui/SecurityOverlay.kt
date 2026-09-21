@@ -112,12 +112,16 @@ fun SecurityOverlay(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         usuarios.forEach { user ->
-                            CardUsuario(nome = user.nome) {
+                        CardUsuario(nome = user.nome) {
+                            if (user.bloqueado) {
+                                temporaryError = "USUÁRIO BLOQUEADO!\nEntre em contato com o administrador."
+                            } else {
                                 selectedUser = user
                                 randomizedOptions = viewModel.gerarOpcoesAleatorias(user.fraseSecreta)
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                     }
                 }
             } else {

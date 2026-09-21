@@ -27,6 +27,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
+import com.pedro.ChamaKids.data.UserEntity
 
 @Composable
 fun MenuScreen(
@@ -40,14 +41,18 @@ fun MenuScreen(
     onGuia: () -> Unit,
     onHistorico: () -> Unit,
     onUsuarios: () -> Unit,
-    isFirstAccess: Boolean
+    onSoftware: () -> Unit,
+    isFirstAccess: Boolean,
+    isFrozen: Boolean,
+    currentUser: UserEntity?
 ) {
-    var showMessage by remember { mutableStateOf(false) }
+    var messageText by remember { mutableStateOf<String?>(null) }
+    val isAdmin = currentUser?.nome == "ADMINISTRADOR"
 
-    LaunchedEffect(showMessage) {
-        if (showMessage) {
+    LaunchedEffect(messageText) {
+        if (messageText != null) {
             delay(2000)
-            showMessage = false
+            messageText = null
         }
     }
 
@@ -79,26 +84,41 @@ fun MenuScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(start = 20.dp, end = 20.dp, top = 40.dp, bottom = 40.dp)
             ) {
-                OpcaoMenu("CHAMADA", IconeMenu.CHAMADA, if (isFirstAccess) { { showMessage = true } } else onChamada, isFirstAccess)
+                val menuBloqueado = (isFirstAccess || isFrozen) && !isAdmin
+
+                fun wrapClick(action: () -> Unit) {
+                    if (menuBloqueado) {
+                        messageText = if (isFirstAccess) "Cadastre um usuário primeiro" else "Aplicativo em Manutenção"
+                    } else {
+                        action()
+                    }
+                }
+
+                OpcaoMenu("CHAMADA", IconeMenu.CHAMADA, { wrapClick(onChamada) }, menuBloqueado)
                 Spacer(modifier = Modifier.height(24.dp))
-                OpcaoMenu("MEMBROS", IconeMenu.MEMBROS, if (isFirstAccess) { { showMessage = true } } else onMembros, isFirstAccess)
+                OpcaoMenu("MEMBROS", IconeMenu.MEMBROS, { wrapClick(onMembros) }, menuBloqueado)
                 Spacer(modifier = Modifier.height(24.dp))
-                OpcaoMenu("LISTA", IconeMenu.LISTA, if (isFirstAccess) { { showMessage = true } } else onLista, isFirstAccess)
+                OpcaoMenu("LISTA", IconeMenu.LISTA, { wrapClick(onLista) }, menuBloqueado)
                 Spacer(modifier = Modifier.height(24.dp))
-                OpcaoMenu("CLASSIFICAR", IconeMenu.CLASSIFICAR, if (isFirstAccess) { { showMessage = true } } else onClassificar, isFirstAccess)
+                OpcaoMenu("CLASSIFICAR", IconeMenu.CLASSIFICAR, { wrapClick(onClassificar) }, menuBloqueado)
                 Spacer(modifier = Modifier.height(24.dp))
-                OpcaoMenu("RANKING", IconeMenu.RANKING, if (isFirstAccess) { { showMessage = true } } else onRanking, isFirstAccess)
+                OpcaoMenu("RANKING", IconeMenu.RANKING, { wrapClick(onRanking) }, menuBloqueado)
                 Spacer(modifier = Modifier.height(24.dp))
-                OpcaoMenu("RELATÓRIO", IconeMenu.RELATORIO, if (isFirstAccess) { { showMessage = true } } else onRelatorio, isFirstAccess)
+                OpcaoMenu("RELATÓRIO", IconeMenu.RELATORIO, { wrapClick(onRelatorio) }, menuBloqueado)
                 Spacer(modifier = Modifier.height(24.dp))
                 OpcaoMenu("GUIA", IconeMenu.GUIA, onGuia, false)
                 Spacer(modifier = Modifier.height(24.dp))
-                OpcaoMenu("HISTÓRICO", IconeMenu.HISTORICO, if (isFirstAccess) { { showMessage = true } } else onHistorico, isFirstAccess)
+                OpcaoMenu("HISTÓRICO", IconeMenu.HISTORICO, { wrapClick(onHistorico) }, menuBloqueado)
                 Spacer(modifier = Modifier.height(24.dp))
                 OpcaoMenu("USUÁRIOS", IconeMenu.USUARIOS, onUsuarios, false)
+
+                if (isAdmin) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    OpcaoMenu("SOFTWARE", IconeMenu.SOFTWARE, onSoftware, false, containerColor = Color(0xFF1A1A1A), contentColor = Color(0xFF00FF41))
+                }
             }
 
-            if (showMessage) {
+            if (messageText != null) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -106,7 +126,7 @@ fun MenuScreen(
                         .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
                         .padding(horizontal = 24.dp, vertical = 12.dp)
                 ) {
-                    Text("Cadastre um usuário primeiro", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(messageText!!, color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -114,11 +134,18 @@ fun MenuScreen(
 }
 
 private enum class IconeMenu {
-    CHAMADA, MEMBROS, LISTA, CLASSIFICAR, RANKING, RELATORIO, GUIA, HISTORICO, USUARIOS
+    CHAMADA, MEMBROS, LISTA, CLASSIFICAR, RANKING, RELATORIO, GUIA, HISTORICO, USUARIOS, SOFTWARE
 }
 
 @Composable
-private fun OpcaoMenu(titulo: String, icone: IconeMenu, onClick: () -> Unit, bloqueado: Boolean) {
+private fun OpcaoMenu(
+    titulo: String, 
+    icone: IconeMenu, 
+    onClick: () -> Unit, 
+    bloqueado: Boolean,
+    containerColor: Color = ChamaKidsAction,
+    contentColor: Color = Color.Black
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -127,24 +154,24 @@ private fun OpcaoMenu(titulo: String, icone: IconeMenu, onClick: () -> Unit, blo
             .clickable { onClick() },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (bloqueado) Color.LightGray else ChamaKidsAction
+            containerColor = if (bloqueado) Color.LightGray else containerColor
         )
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconeOpcaoMenu(tipo = icone, cor = if (bloqueado) Color.Gray else Color.Black)
+            IconeOpcaoMenu(tipo = icone, cor = if (bloqueado) Color.Gray else contentColor)
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = titulo, 
                 fontSize = 16.sp, 
                 fontWeight = FontWeight.SemiBold, 
                 modifier = Modifier.weight(1f),
-                color = if (bloqueado) Color.Gray else Color.Black
+                color = if (bloqueado) Color.Gray else contentColor
             )
             if (!bloqueado) {
-                Text(text = ">", fontSize = 26.sp)
+                Text(text = ">", fontSize = 26.sp, color = contentColor)
             } else {
                 Text(text = "🔒", fontSize = 20.sp)
             }
@@ -216,6 +243,11 @@ private fun IconeOpcaoMenu(tipo: IconeMenu, cor: Color = Color.Black) {
             IconeMenu.USUARIOS -> {
                 drawCircle(cor, 5.dp.toPx(), Offset(14.dp.toPx(), 9.dp.toPx()), style = Stroke(largura))
                 drawArc(cor, 200f, 140f, false, Offset(7.dp.toPx(), 15.dp.toPx()), androidx.compose.ui.geometry.Size(14.dp.toPx(), 10.dp.toPx()), style = Stroke(largura, cap = StrokeCap.Round))
+            }
+            IconeMenu.SOFTWARE -> {
+                drawRect(cor, Offset(4.dp.toPx(), 6.dp.toPx()), androidx.compose.ui.geometry.Size(20.dp.toPx(), 16.dp.toPx()), style = Stroke(largura))
+                drawLine(cor, Offset(8.dp.toPx(), 10.dp.toPx()), Offset(12.dp.toPx(), 10.dp.toPx()), largura)
+                drawLine(cor, Offset(8.dp.toPx(), 14.dp.toPx()), Offset(20.dp.toPx(), 14.dp.toPx()), largura)
             }
         }
     }

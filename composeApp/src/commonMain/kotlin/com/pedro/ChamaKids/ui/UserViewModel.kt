@@ -30,6 +30,12 @@ class UserViewModel : ViewModel() {
         initialValue = true
     )
 
+    val isFrozen = FirebaseSyncManager.isFrozen.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+
     private val _securityState = MutableStateFlow<SecurityStateEntity?>(null)
     val securityState = _securityState.asStateFlow()
 
@@ -141,6 +147,29 @@ class UserViewModel : ViewModel() {
     
     fun logout() {
         _currentUser.value = null
+    }
+
+    // --- MODO SOFTWARE ---
+
+    fun toggleFreezeApp() {
+        viewModelScope.launch {
+            FirebaseSyncManager.setFrozen(!isFrozen.value)
+        }
+    }
+
+    fun toggleUserBlock(user: UserEntity) {
+        viewModelScope.launch {
+            val updated = user.copy(bloqueado = !user.bloqueado)
+            userDao.inserir(updated)
+            FirebaseSyncManager.syncUser(updated)
+        }
+    }
+
+    fun factoryReset() {
+        viewModelScope.launch {
+            FirebaseSyncManager.factoryReset(database)
+            _currentUser.value = null
+        }
     }
 
     fun gerarOpcoesAleatorias(correta: String): List<String> {

@@ -6,13 +6,13 @@ import kotlinx.datetime.Clock
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 @Serializable
 private data class UserDoc(
     val nome: String = "",
     val fraseSecreta: String = "",
-    val lastUpdated: Long = 0
+    val lastUpdated: Long = 0,
+    val bloqueado: Boolean = false
 )
 
 @Serializable
@@ -59,6 +59,11 @@ private data class StarDoc(
     val lastUpdated: Long = 0
 )
 
+@Serializable
+private data class AppConfigDoc(
+    val isFrozen: Boolean = false
+)
+
 object FirebaseSyncManager {
     private val firestore by lazy { Firebase.firestore }
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -68,6 +73,17 @@ object FirebaseSyncManager {
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _isFrozen = MutableStateFlow(false)
+    val isFrozen: StateFlow<Boolean> = _isFrozen.asStateFlow()
+
+    private fun toLong(value: Any?): Long {
+        return when (value) {
+            is Number -> value.toLong()
+            is String -> value.toLongOrNull() ?: 0L
+            else -> 0L
+        }
+    }
 
     suspend fun syncMember(member: MemberEntity) {
         try {
@@ -97,7 +113,7 @@ object FirebaseSyncManager {
 
     suspend fun syncUser(user: UserEntity) {
         try {
-            val doc = UserDoc(user.nome, user.fraseSecreta, user.lastUpdated)
+            val doc = UserDoc(user.nome, user.fraseSecreta, user.lastUpdated, user.bloqueado)
             firestore.collection("users").document(user.serverId).set(UserDoc.serializer(), doc)
         } catch (e: Exception) {
             _errorMessage.value = "Erro usuário: ${e.message}"
@@ -128,9 +144,29 @@ object FirebaseSyncManager {
         }
     }
 
+    suspend fun setFrozen(frozen: Boolean) {
+        try {
+            firestore.collection("app_config").document("global").set(AppConfigDoc.serializer(), AppConfigDoc(frozen))
+        } catch (e: Exception) {
+            _errorMessage.value = "Erro congelar: ${e.message}"
+        }
+    }
+
     fun startSync(database: ChamaKidsDatabase) {
         _errorMessage.value = null
         
+        // Monitor de Configuração Global (Congelamento)
+        scope.launch {
+            try {
+                firestore.collection("app_config").document("global").snapshots().collect { doc ->
+                    if (doc.exists) {
+                        val config = doc.data(AppConfigDoc.serializer())
+                        _isFrozen.value = config.isFrozen
+                    }
+                }
+            } catch (_: Exception) { }
+        }
+
         // Monitor de Usuários
         scope.launch {
             try {
@@ -142,7 +178,8 @@ object FirebaseSyncManager {
                                 serverId = doc.id,
                                 nome = data.nome,
                                 fraseSecreta = data.fraseSecreta,
-                                lastUpdated = data.lastUpdated
+                                lastUpdated = data.lastUpdated,
+                                bloqueado = data.bloqueado
                             )
                             database.userDao().inserir(user)
                         } catch (_: Exception) {}
@@ -186,7 +223,7 @@ object FirebaseSyncManager {
             } catch (e: Exception) { _errorMessage.value = "Sinc membros: ${e.message}" }
         }
 
-        // Monitor de Chamadas
+        // Monitor de Chamadas (Com records reativos)
         scope.launch {
             try {
                 firestore.collection("attendances").snapshots().collect { snapshot ->
@@ -202,18 +239,22 @@ object FirebaseSyncManager {
                             )
                             database.attendanceDao().inserirChamada(attendance)
                             
-                            val recs = firestore.collection("attendances").document(doc.id).collection("records").get()
-                            val entities = recs.documents.map { rDoc ->
-                                val rData = rDoc.data(RecordDoc.serializer())
-                                AttendanceRecordEntity(
-                                    serverId = rDoc.id,
-                                    attendanceId = doc.id,
-                                    memberId = rData.memberId,
-                                    presente = rData.presente,
-                                    lastUpdated = rData.lastUpdated
-                                )
+                            // Inicia um listener para os registros desta chamada específica
+                            scope.launch {
+                                firestore.collection("attendances").document(doc.id).collection("records").snapshots().collect { rSnapshot ->
+                                    val entities = rSnapshot.documents.map { rDoc ->
+                                        val rData = rDoc.data(RecordDoc.serializer())
+                                        AttendanceRecordEntity(
+                                            serverId = rDoc.id,
+                                            attendanceId = doc.id,
+                                            memberId = rData.memberId,
+                                            presente = rData.presente,
+                                            lastUpdated = rData.lastUpdated
+                                        )
+                                    }
+                                    database.attendanceDao().inserirRegistros(entities)
+                                }
                             }
-                            database.attendanceDao().inserirRegistros(entities)
                         } catch (_: Exception) {}
                     }
                 }
@@ -241,5 +282,23 @@ object FirebaseSyncManager {
                 }
             } catch (e: Exception) { _errorMessage.value = "Sinc estrelas: ${e.message}" }
         }
+    }
+    
+    suspend fun factoryReset(database: ChamaKidsDatabase) {
+        try {
+            val collections = listOf("members", "attendances", "stars", "users")
+            collections.forEach { coll ->
+                val snapshot = firestore.collection(coll).get()
+                snapshot.documents.forEach { doc ->
+                    if (coll == "users") {
+                        val uData = doc.data(UserDoc.serializer())
+                        if (uData.nome == "ADMINISTRADOR") return@forEach // Preserva o Admin
+                    }
+                    firestore.collection(coll).document(doc.id).delete()
+                }
+            }
+            // Limpa local
+            database.memberDao().buscarTodos().forEach { database.memberDao().inativar(it.serverId) }
+        } catch (_: Exception) { }
     }
 }

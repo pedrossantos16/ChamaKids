@@ -11,5 +11,6 @@ data class UserEntity(
     val serverId: String,
     val nome: String,
     val fraseSecreta: String,
-    val lastUpdated: Long = 0
+    val lastUpdated: Long = 0,
+    val bloqueado: Boolean = false
 )

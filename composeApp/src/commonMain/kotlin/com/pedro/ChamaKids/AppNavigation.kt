@@ -6,25 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.pedro.ChamaKids.ui.AttendanceScreen
-import com.pedro.ChamaKids.ui.HomeScreen
-import com.pedro.ChamaKids.ui.MenuScreen
+import com.pedro.ChamaKids.ui.*
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pedro.ChamaKids.ui.AttendanceViewModel
-import com.pedro.ChamaKids.ui.MemberViewModel
-import com.pedro.ChamaKids.ui.MemberDetailScreen
-import com.pedro.ChamaKids.ui.HistoryScreen
-import com.pedro.ChamaKids.ui.AttendanceDetailScreen
-import com.pedro.ChamaKids.ui.ListScreen
-import com.pedro.ChamaKids.ui.ListDetailScreen
-import com.pedro.ChamaKids.ui.AddMemberScreen
-import com.pedro.ChamaKids.ui.ClassifyScreen
-import com.pedro.ChamaKids.ui.ClassifyDetailScreen
-import com.pedro.ChamaKids.ui.RankingScreen
-import com.pedro.ChamaKids.ui.ReportScreen
-import com.pedro.ChamaKids.ui.GuideScreen
-import com.pedro.ChamaKids.ui.UserViewModel
-import com.pedro.ChamaKids.ui.UsersScreen
 
 @Composable
 fun AppNavigation() {
@@ -57,6 +40,9 @@ fun AppNavigation() {
 
         composable("menu") {
             val isFirstAccess by userViewModel.isFirstAccess.collectAsState()
+            val isFrozen by userViewModel.isFrozen.collectAsState()
+            val currentUser by userViewModel.currentUser.collectAsState()
+            
             MenuScreen(
                 onVoltar = { navController.popBackStack() },
                 onChamada = { navController.navigate("chamada") },
@@ -68,7 +54,10 @@ fun AppNavigation() {
                 onGuia = { navController.navigate("guia") },
                 onHistorico = { navController.navigate("historico") },
                 onUsuarios = { navController.navigate("usuarios") },
-                isFirstAccess = isFirstAccess
+                onSoftware = { navController.navigate("software") },
+                isFirstAccess = isFirstAccess,
+                isFrozen = isFrozen,
+                currentUser = currentUser
             )
         }
 
@@ -188,6 +177,13 @@ fun AppNavigation() {
 
         composable("usuarios") {
             UsersScreen(
+                onVoltar = { navController.popBackStack() },
+                viewModel = userViewModel
+            )
+        }
+
+        composable("software") {
+            SoftwareScreen(
                 onVoltar = { navController.popBackStack() },
                 viewModel = userViewModel
             )
