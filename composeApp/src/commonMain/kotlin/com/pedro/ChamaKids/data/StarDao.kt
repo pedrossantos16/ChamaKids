@@ -7,7 +7,19 @@ import androidx.room.Query
 @Dao
 interface StarDao {
     @Insert
-    suspend fun inserirEstrela(estrela: StarRecordEntity)
+    suspend fun inserirEstrela(estrela: StarRecordEntity): Long
+
+    @Query("SELECT * FROM star_records WHERE serverId = :serverId LIMIT 1")
+    suspend fun buscarPorServerId(serverId: String): StarRecordEntity?
+
+    @Query("UPDATE star_records SET serverId = :serverId WHERE id = :id")
+    suspend fun atualizarServerId(id: Int, serverId: String)
+
+    @Query("DELETE FROM star_records WHERE serverId = :serverId")
+    suspend fun excluirPorServerId(serverId: String)
+
+    @Query("SELECT * FROM star_records")
+    suspend fun observarTodasEstrelas(): List<StarRecordEntity>
 
     @Query("SELECT COUNT(*) FROM star_records WHERE memberId = :memberId")
     suspend fun contarEstrelasDoMembro(memberId: Int): Int

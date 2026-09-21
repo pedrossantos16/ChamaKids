@@ -95,6 +95,12 @@ interface AttendanceDao {
     @Query("SELECT * FROM attendances WHERE id = :id")
     suspend fun buscarPorId(id: Int): AttendanceEntity?
 
+    @Query("SELECT * FROM attendances WHERE serverId = :serverId LIMIT 1")
+    suspend fun buscarPorServerId(serverId: String): AttendanceEntity?
+
+    @Query("UPDATE attendances SET serverId = :serverId WHERE id = :id")
+    suspend fun atualizarServerId(id: Int, serverId: String)
+
     @Query("DELETE FROM attendances WHERE id IN (:ids)")
     suspend fun excluirChamadas(ids: List<Int>)
 

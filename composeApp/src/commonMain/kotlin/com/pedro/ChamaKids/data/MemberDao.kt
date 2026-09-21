@@ -64,6 +64,15 @@ interface MemberDao {
     ): MemberEntity?
 
 
+    @Query("SELECT * FROM members WHERE serverId = :serverId LIMIT 1")
+    suspend fun buscarPorServerId(serverId: String): MemberEntity?
+
+    @Query("UPDATE members SET serverId = :serverId WHERE id = :id")
+    suspend fun atualizarServerId(id: Int, serverId: String)
+
+    @Query("SELECT * FROM members WHERE nome = :nome AND cpf = :cpf LIMIT 1")
+    suspend fun buscarPorNomeECpf(nome: String, cpf: String): MemberEntity?
+
     /*
      * Cadastra um novo membro.
      *

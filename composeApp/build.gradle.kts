@@ -55,6 +55,8 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
+            implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+            implementation("io.ktor:ktor-client-okhttp:2.3.12")
         }
     }
 

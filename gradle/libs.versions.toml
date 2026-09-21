@@ -1,5 +1,5 @@
 [versions]
-agp = "8.5.2"
+agp = "8.7.3"
 kotlin = "2.0.21"
 compose-multiplatform = "1.7.1"
 room = "2.7.0-alpha11"
@@ -10,6 +10,7 @@ kotlinx-datetime = "0.6.1"
 androidx-lifecycle = "2.8.3"
 androidx-activity = "1.9.3"
 firebase-gitlive = "2.1.0"
+firebase-bom = "33.4.0"
 google-services = "4.4.2"
 
 [libraries]
@@ -24,6 +25,7 @@ kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 firebase-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "firebase-gitlive" }
 firebase-firestore = { group = "dev.gitlive", name = "firebase-firestore", version.ref = "firebase-gitlive" }
 firebase-storage = { group = "dev.gitlive", name = "firebase-storage", version.ref = "firebase-gitlive" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
