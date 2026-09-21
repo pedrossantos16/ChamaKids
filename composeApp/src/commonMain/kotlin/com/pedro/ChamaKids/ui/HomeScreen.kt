@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,6 +40,7 @@ fun HomeScreen(
     val currentUser by userViewModel.currentUser.collectAsState()
     val isBlocked by userViewModel.isBlocked.collectAsState()
     val isFirstAccess by userViewModel.isFirstAccess.collectAsState()
+    val syncing by com.pedro.ChamaKids.data.FirebaseSyncManager.syncing.collectAsState()
 
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
     var downloadProgress by remember { mutableStateOf<Float?>(null) }
@@ -247,6 +249,23 @@ fun HomeScreen(
                     .padding(8.dp)
             ) {
                 Text(text = "Erro Update: $updateError", color = Color.White, fontSize = 12.sp)
+            }
+        }
+
+        // Indicador de Sincronia Nuvem
+        if (syncing) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(12.dp), color = Color.White, strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sincronizando...", color = Color.White, fontSize = 10.sp)
+                }
             }
         }
 

@@ -7,8 +7,6 @@ import com.pedro.ChamaKids.data.DatabaseProvider
 import com.pedro.ChamaKids.data.FirebaseSyncManager
 import com.pedro.ChamaKids.data.SecurityStateEntity
 import com.pedro.ChamaKids.data.UserEntity
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -49,26 +47,6 @@ class UserViewModel : ViewModel() {
     init {
         refreshSecurityState()
         startBlockCheckTimer()
-        listenToRemoteUsers()
-    }
-
-    private fun listenToRemoteUsers() {
-        viewModelScope.launch {
-            try {
-                Firebase.firestore.collection("users").snapshots().collect { snapshot ->
-                    snapshot.documents.forEach { doc ->
-                        val data = doc.data<Map<String, Any?>>()
-                        val user = UserEntity(
-                            serverId = doc.id,
-                            nome = data["nome"] as? String ?: "",
-                            fraseSecreta = data["fraseSecreta"] as? String ?: "",
-                            lastUpdated = (data["lastUpdated"] as? Number)?.toLong() ?: 0
-                        )
-                        userDao.inserir(user)
-                    }
-                }
-            } catch (_: Exception) { }
-        }
     }
 
     fun refreshSecurityState() {

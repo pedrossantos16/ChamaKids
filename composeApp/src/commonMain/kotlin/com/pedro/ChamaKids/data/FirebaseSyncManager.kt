@@ -4,11 +4,22 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.datetime.Clock
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.*
 
 object FirebaseSyncManager {
     private val firestore by lazy { Firebase.firestore }
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    
+    private val _syncing = MutableStateFlow(false)
+    val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
+
+    private fun toLong(value: Any?): Long {
+        return when (value) {
+            is Number -> value.toLong()
+            is String -> value.toLongOrNull() ?: 0L
+            else -> 0L
+        }
+    }
 
     suspend fun syncMember(member: MemberEntity) {
         try {
@@ -31,6 +42,16 @@ object FirebaseSyncManager {
                 "lastUpdated" to Clock.System.now().toEpochMilliseconds()
             )
             firestore.collection("members").document(member.serverId).set(data)
+        } catch (_: Exception) { }
+    }
+
+    suspend fun syncUser(user: UserEntity) {
+        try {
+            firestore.collection("users").document(user.serverId).set(mapOf(
+                "nome" to user.nome,
+                "fraseSecreta" to user.fraseSecreta,
+                "lastUpdated" to user.lastUpdated
+            ))
         } catch (_: Exception) { }
     }
 
@@ -66,22 +87,13 @@ object FirebaseSyncManager {
         } catch (_: Exception) { }
     }
 
-    suspend fun syncUser(user: UserEntity) {
-        try {
-            firestore.collection("users").document(user.serverId).set(mapOf(
-                "nome" to user.nome,
-                "fraseSecreta" to user.fraseSecreta,
-                "lastUpdated" to user.lastUpdated
-            ))
-        } catch (_: Exception) { }
-    }
-
     fun startSync(database: ChamaKidsDatabase) {
-        // Listener em Tempo Real para Membros
+        // Monitor de Membros
         scope.launch {
-            try {
-                firestore.collection("members").snapshots().collect { snapshot ->
-                    snapshot.documents.forEach { doc ->
+            firestore.collection("members").snapshots().collect { snapshot ->
+                _syncing.value = true
+                snapshot.documents.forEach { doc ->
+                    try {
                         val data = doc.data<Map<String, Any?>>()
                         val member = MemberEntity(
                             serverId = doc.id,
@@ -100,83 +112,64 @@ object FirebaseSyncManager {
                             ativo = data["ativo"] as? Boolean ?: true,
                             criadoPor = data["criadoPor"] as? String,
                             ultimaAlteracaoPor = data["ultimaAlteracaoPor"] as? String,
-                            lastUpdated = (data["lastUpdated"] as? Number)?.toLong() ?: 0
+                            lastUpdated = toLong(data["lastUpdated"])
                         )
                         database.memberDao().inserir(member)
-                    }
+                    } catch (_: Exception) {}
                 }
-            } catch (_: Exception) { }
+                _syncing.value = false
+            }
         }
 
-        // Listener em Tempo Real para Usuários
+        // Monitor de Usuários
         scope.launch {
-            try {
-                firestore.collection("users").snapshots().collect { snapshot ->
-                    snapshot.documents.forEach { doc ->
+            firestore.collection("users").snapshots().collect { snapshot ->
+                snapshot.documents.forEach { doc ->
+                    try {
                         val data = doc.data<Map<String, Any?>>()
                         val user = UserEntity(
                             serverId = doc.id,
                             nome = data["nome"] as? String ?: "",
                             fraseSecreta = data["fraseSecreta"] as? String ?: "",
-                            lastUpdated = (data["lastUpdated"] as? Number)?.toLong() ?: 0
+                            lastUpdated = toLong(data["lastUpdated"])
                         )
                         database.userDao().inserir(user)
-                    }
+                    } catch (_: Exception) {}
                 }
-            } catch (_: Exception) { }
+            }
         }
 
-        // Listener em Tempo Real para Chamadas
+        // Monitor de Chamadas
         scope.launch {
-            try {
-                firestore.collection("attendances").snapshots().collect { snapshot ->
-                    snapshot.documents.forEach { doc ->
+            firestore.collection("attendances").snapshots().collect { snapshot ->
+                snapshot.documents.forEach { doc ->
+                    try {
                         val data = doc.data<Map<String, Any?>>()
                         val attendance = AttendanceEntity(
                             serverId = doc.id,
                             nome = data["nome"] as? String,
-                            dataHora = (data["dataHora"] as? Number)?.toLong() ?: 0,
+                            dataHora = toLong(data["dataHora"]),
                             criadoPor = data["criadoPor"] as? String,
-                            lastUpdated = (data["lastUpdated"] as? Number)?.toLong() ?: 0
+                            lastUpdated = toLong(data["lastUpdated"])
                         )
                         database.attendanceDao().inserirChamada(attendance)
                         
-                        // Sincronizar registros da chamada (Sub-coleção)
-                        val recordsSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
-                        val records = recordsSnapshot.documents.map { rDoc ->
+                        // Sincroniza os registros de cada chamada
+                        val recs = firestore.collection("attendances").document(doc.id).collection("records").get()
+                        val entities = recs.documents.map { rDoc ->
                             val rData = rDoc.data<Map<String, Any?>>()
                             AttendanceRecordEntity(
                                 serverId = rDoc.id,
                                 attendanceId = doc.id,
                                 memberId = rData["memberId"] as? String ?: "",
                                 presente = rData["presente"] as? Boolean ?: false,
-                                lastUpdated = (rData["lastUpdated"] as? Number)?.toLong() ?: 0
+                                lastUpdated = toLong(rData["lastUpdated"])
                             )
                         }
-                        database.attendanceDao().inserirRegistros(records)
-                    }
+                        database.attendanceDao().inserirRegistros(entities)
+                    } catch (_: Exception) {}
                 }
-            } catch (_: Exception) { }
-        }
-
-        // Listener em Tempo Real para Estrelas
-        scope.launch {
-            try {
-                firestore.collection("stars").snapshots().collect { snapshot ->
-                    snapshot.documents.forEach { doc ->
-                        val data = doc.data<Map<String, Any?>>()
-                        val star = StarRecordEntity(
-                            serverId = doc.id,
-                            memberId = data["memberId"] as? String ?: "",
-                            dataHora = (data["dataHora"] as? Number)?.toLong() ?: 0,
-                            comentario = data["comentario"] as? String,
-                            criadoPor = data["criadoPor"] as? String,
-                            lastUpdated = (data["lastUpdated"] as? Number)?.toLong() ?: 0
-                        )
-                        database.starDao().inserirEstrela(star)
-                    }
-                }
-            } catch (_: Exception) { }
+            }
         }
     }
 }
