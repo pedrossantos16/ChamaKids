@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
         
         PdfGenerator.setContext(this)
         DeviceIdentifier.setContext(this)
+        ApkInstaller.setContext(this)
 
         setContent {
             App()

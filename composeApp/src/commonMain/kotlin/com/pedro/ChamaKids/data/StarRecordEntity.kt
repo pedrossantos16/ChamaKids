@@ -3,6 +3,7 @@ package com.pedro.ChamaKids.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 @Entity(
     tableName = "star_records",
@@ -13,7 +14,8 @@ import androidx.room.ForeignKey
             childColumns = ["memberId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index("memberId")]
 )
 data class StarRecordEntity(
     @PrimaryKey(autoGenerate = true)

@@ -6,7 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +26,9 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import com.pedro.ChamaKids.UpdateChecker
+import com.pedro.ChamaKids.UpdateInfo
+import com.pedro.ChamaKids.ApkInstaller
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -37,12 +40,16 @@ fun HomeScreen(
     val isBlocked by userViewModel.isBlocked.collectAsState()
     val usuarios by userViewModel.usuarios.collectAsState()
 
+    val scope = rememberCoroutineScope()
+    var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    var downloadProgress by remember { mutableStateOf<Float?>(null) }
+
     // Check for updates
     LaunchedEffect(Unit) {
         val currentVersionCode = 1 
         val update = UpdateChecker.checkUpdate(currentVersionCode)
         if (update != null) {
-            // Futuramente mostrar diálogo
+            updateInfo = update
         }
     }
 
@@ -204,6 +211,56 @@ fun HomeScreen(
         // Overlay de Segurança
         if ((currentUser == null || isBlocked) && usuarios.isNotEmpty()) {
             SecurityOverlay(viewModel = userViewModel)
+        }
+
+        // Diálogo de Atualização
+        if (updateInfo != null) {
+            AlertDialog(
+                onDismissRequest = { },
+                title = { Text("Nova Versão Disponível!") },
+                text = {
+                    Column {
+                        Text("Uma nova versão (${updateInfo!!.versionName}) está disponível.")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Notas da atualização:", fontWeight = FontWeight.Bold)
+                        Text(updateInfo!!.releaseNotes)
+                        
+                        if (downloadProgress != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Baixando: ${(downloadProgress!! * 100).toInt()}%")
+                            LinearProgressIndicator(
+                                progress = { downloadProgress!! },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    if (downloadProgress == null) {
+                        Button(onClick = {
+                            scope.launch {
+                                val data = UpdateChecker.downloadApk(updateInfo!!.apkUrl) { progress ->
+                                    downloadProgress = progress
+                                }
+                                if (data != null) {
+                                    ApkInstaller.install(data)
+                                    downloadProgress = null
+                                    updateInfo = null
+                                }
+                            }
+                        }) {
+                            Text("ATUALIZAR AGORA")
+                        }
+                    }
+                },
+                dismissButton = {
+                    if (downloadProgress == null) {
+                        TextButton(onClick = { updateInfo = null }) {
+                            Text("DEPOIS")
+                        }
+                    }
+                }
+            )
         }
     }
 }
