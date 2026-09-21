@@ -1,6 +1,8 @@
 package com.pedro.ChamaKids
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -48,11 +50,13 @@ fun AppNavigation() {
             AttendanceScreen(
                 onVoltar = { navController.popBackStack() },
                 memberViewModel = memberViewModel,
-                attendanceViewModel = attendanceViewModel
+                attendanceViewModel = attendanceViewModel,
+                userViewModel = userViewModel
             )
         }
 
         composable("menu") {
+            val isFirstAccess by userViewModel.isFirstAccess.collectAsState()
             MenuScreen(
                 onVoltar = { navController.popBackStack() },
                 onChamada = { navController.navigate("chamada") },
@@ -63,7 +67,8 @@ fun AppNavigation() {
                 onRelatorio = { navController.navigate("relatorio") },
                 onGuia = { navController.navigate("guia") },
                 onHistorico = { navController.navigate("historico") },
-                onUsuarios = { navController.navigate("usuarios") }
+                onUsuarios = { navController.navigate("usuarios") },
+                isFirstAccess = isFirstAccess
             )
         }
 
@@ -76,8 +81,8 @@ fun AppNavigation() {
         composable("lista") {
             ListScreen(
                 onVoltar = { navController.popBackStack() },
-                onAbrirMembro = { membroId ->
-                    navController.navigate("detalhes_lista/$membroId")
+                onAbrirMembro = { serverId ->
+                    navController.navigate("detalhes_lista/$serverId")
                 },
                 viewModel = memberViewModel
             )
@@ -86,22 +91,20 @@ fun AppNavigation() {
         composable(
             route = "detalhes_lista/{membroId}"
         ) { backStackEntry ->
-            val membroId = backStackEntry.arguments?.getString("membroId")?.toIntOrNull()
-            if (membroId != null) {
-                ListDetailScreen(
-                    membroId = membroId,
-                    memberViewModel = memberViewModel,
-                    attendanceViewModel = attendanceViewModel,
-                    onVoltar = { navController.popBackStack() }
-                )
-            }
+            val membroId = backStackEntry.arguments?.getString("membroId") ?: ""
+            ListDetailScreen(
+                membroId = membroId,
+                memberViewModel = memberViewModel,
+                attendanceViewModel = attendanceViewModel,
+                onVoltar = { navController.popBackStack() }
+            )
         }
 
         composable("membros") {
             com.pedro.ChamaKids.ui.MembersScreen(
                 onVoltar = { navController.popBackStack() },
                 onAdicionarMembro = { navController.navigate("adicionar_membro") },
-                onAbrirMembro = { membroId -> navController.navigate("membro/$membroId") },
+                onAbrirMembro = { serverId -> navController.navigate("membro/$serverId") },
                 viewModel = memberViewModel
             )
         }
@@ -116,21 +119,19 @@ fun AppNavigation() {
         composable(
             route = "membro/{membroId}"
         ) { backStackEntry ->
-            val membroId = backStackEntry.arguments?.getString("membroId")?.toIntOrNull()
-            if (membroId != null) {
-                MemberDetailScreen(
-                    membroId = membroId,
-                    viewModel = memberViewModel,
-                    onVoltar = { navController.popBackStack() }
-                )
-            }
+            val membroId = backStackEntry.arguments?.getString("membroId") ?: ""
+            MemberDetailScreen(
+                serverId = membroId,
+                viewModel = memberViewModel,
+                onVoltar = { navController.popBackStack() }
+            )
         }
 
         composable("classificar") {
             ClassifyScreen(
                 onVoltar = { navController.popBackStack() },
-                onClassificarMembro = { membroId ->
-                    navController.navigate("detalhes_classificar/$membroId")
+                onClassificarMembro = { serverId ->
+                    navController.navigate("detalhes_classificar/$serverId")
                 },
                 viewModel = memberViewModel
             )
@@ -139,14 +140,13 @@ fun AppNavigation() {
         composable(
             route = "detalhes_classificar/{membroId}"
         ) { backStackEntry ->
-            val membroId = backStackEntry.arguments?.getString("membroId")?.toIntOrNull()
-            if (membroId != null) {
-                ClassifyDetailScreen(
-                    membroId = membroId,
-                    viewModel = memberViewModel,
-                    onVoltar = { navController.popBackStack() }
-                )
-            }
+            val membroId = backStackEntry.arguments?.getString("membroId") ?: ""
+            ClassifyDetailScreen(
+                serverId = membroId,
+                viewModel = memberViewModel,
+                userViewModel = userViewModel,
+                onVoltar = { navController.popBackStack() }
+            )
         }
 
         composable("ranking") {
@@ -168,8 +168,8 @@ fun AppNavigation() {
             HistoryScreen(
                 viewModel = attendanceViewModel,
                 onVoltar = { navController.popBackStack() },
-                onAbrirChamada = { chamadaId ->
-                    navController.navigate("detalhes_chamada/$chamadaId")
+                onAbrirChamada = { serverId ->
+                    navController.navigate("detalhes_chamada/$serverId")
                 }
             )
         }
@@ -177,15 +177,13 @@ fun AppNavigation() {
         composable(
             route = "detalhes_chamada/{chamadaId}"
         ) { backStackEntry ->
-            val chamadaId = backStackEntry.arguments?.getString("chamadaId")?.toIntOrNull()
-            if (chamadaId != null) {
-                AttendanceDetailScreen(
-                    chamadaId = chamadaId,
-                    attendanceViewModel = attendanceViewModel,
-                    memberViewModel = memberViewModel,
-                    onVoltar = { navController.popBackStack() }
-                )
-            }
+            val chamadaId = backStackEntry.arguments?.getString("chamadaId") ?: ""
+            AttendanceDetailScreen(
+                chamadaId = chamadaId,
+                attendanceViewModel = attendanceViewModel,
+                memberViewModel = memberViewModel,
+                onVoltar = { navController.popBackStack() }
+            )
         }
 
         composable("usuarios") {

@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ClassifyScreen(
     onVoltar: () -> Unit,
-    onClassificarMembro: (Int) -> Unit,
+    onClassificarMembro: (String) -> Unit,
     viewModel: MemberViewModel
 ) {
     val membros by viewModel.membros.collectAsState()
@@ -39,20 +39,14 @@ fun ClassifyScreen(
                     .padding(top = 24.dp, bottom = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Sombra/Contorno Preto
                 Text(
                     text = "Escolha quem receberá uma estrela",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.Black,
                     textAlign = TextAlign.Center,
-                    style = TextStyle(
-                        drawStyle = Stroke(
-                            width = 4f
-                        )
-                    )
+                    style = TextStyle(drawStyle = Stroke(width = 4f))
                 )
-                // Texto Amarelo Brilhante
                 Text(
                     text = "Escolha quem receberá uma estrela",
                     fontSize = 20.sp,
@@ -77,7 +71,7 @@ fun ClassifyScreen(
                     items(membros) { membro ->
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { onClassificarMembro(membro.id) }
+                            modifier = Modifier.clickable { onClassificarMembro(membro.serverId) }
                         ) {
                             Box(
                                 modifier = Modifier

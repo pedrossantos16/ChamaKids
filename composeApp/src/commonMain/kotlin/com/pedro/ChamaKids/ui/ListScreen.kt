@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ListScreen(
     onVoltar: () -> Unit,
-    onAbrirMembro: (Int) -> Unit,
+    onAbrirMembro: (String) -> Unit,
     viewModel: MemberViewModel
 ) {
     val membros by viewModel.membros.collectAsState()
@@ -60,7 +60,7 @@ fun ListScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .clickable { onAbrirMembro(membro.id) }
+                            .clickable { onAbrirMembro(membro.serverId) }
                     ) {
                         Box(
                             modifier = Modifier

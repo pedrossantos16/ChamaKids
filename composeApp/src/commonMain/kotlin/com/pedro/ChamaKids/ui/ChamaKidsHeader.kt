@@ -3,6 +3,7 @@ package com.pedro.ChamaKids.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -11,9 +12,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import com.pedro.ChamaKids.ui.theme.ChamaKidsBlack
 import com.pedro.ChamaKids.ui.theme.ChamaKidsBlue
 import com.pedro.ChamaKids.ui.theme.ChamaKidsHeaderGray
@@ -123,4 +126,32 @@ fun ChamaKidsScreen(
             content()
         }
     }
+}
+
+@Composable
+fun CampoFicha(
+    valor: String,
+    titulo: String,
+    habilitado: Boolean,
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    onChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onChange,
+        enabled = habilitado,
+        label = { Text(titulo) },
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        visualTransformation = visualTransformation,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            disabledContainerColor = Color(0xFFE2E2E2),
+            disabledTextColor = Color(0xFF666666),
+            disabledBorderColor = Color(0xFFAAAAAA)
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
 }

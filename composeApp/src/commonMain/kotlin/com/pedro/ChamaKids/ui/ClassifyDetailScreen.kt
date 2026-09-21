@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,15 +25,17 @@ import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
 
 @Composable
 fun ClassifyDetailScreen(
-    membroId: Int,
+    serverId: String,
     viewModel: MemberViewModel,
+    userViewModel: UserViewModel,
     onVoltar: () -> Unit
 ) {
     var membro by remember { mutableStateOf<MemberEntity?>(null) }
     var comentario by remember { mutableStateOf("") }
+    val currentUser by userViewModel.currentUser.collectAsState()
 
-    LaunchedEffect(membroId) {
-        membro = viewModel.buscarMembroPorId(membroId)
+    LaunchedEffect(serverId) {
+        membro = viewModel.buscarMembroPorId(serverId)
     }
 
     ChamaKidsScreen(
@@ -57,7 +58,6 @@ fun ClassifyDetailScreen(
             ) {
                 Spacer(modifier = Modifier.height(60.dp))
 
-                // Texto de instrução
                 Text(
                     text = "${m.nome.split(" ").firstOrNull()?.uppercase()} receberá 1 estrela ★",
                     fontSize = 20.sp,
@@ -67,12 +67,10 @@ fun ClassifyDetailScreen(
                     modifier = Modifier.padding(bottom = 50.dp)
                 )
 
-                // Foto centralizada com Estrela atrás (Desenhada via Canvas)
                 Box(
                     modifier = Modifier.size(300.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Estrela Gigante atrás desenhada à mão
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val centro = Offset(size.width / 2, size.height / 2)
                         val pontos = 5
@@ -91,7 +89,6 @@ fun ClassifyDetailScreen(
                         drawPath(path, Color(0xFFFFD600))
                     }
 
-                    // Foto Circular
                     Box(
                         modifier = Modifier
                             .size(170.dp)
@@ -119,7 +116,6 @@ fun ClassifyDetailScreen(
 
                 Spacer(modifier = Modifier.height(50.dp))
 
-                // Linha de comentário opcional
                 OutlinedTextField(
                     value = comentario,
                     onValueChange = { comentario = it },
@@ -136,13 +132,13 @@ fun ClassifyDetailScreen(
 
                 Button(
                     onClick = { 
-                        viewModel.darEstrela(membroId, comentario) {
+                        viewModel.darEstrela(serverId, comentario, currentUser?.nome) {
                             onVoltar()
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 45.dp) // Subir botão
+                        .padding(bottom = 45.dp)
                         .height(54.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = ChamaKidsAction, contentColor = Color.Black),
                     shape = RoundedCornerShape(12.dp),

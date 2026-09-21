@@ -2,115 +2,44 @@ package com.pedro.ChamaKids.data
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Transaction
-
 import kotlinx.coroutines.flow.Flow
-
 
 @Dao
 interface AttendanceDao {
 
-    /**
-     * Cria uma nova chamada.
-     *
-     * Room retorna Long mesmo que a PK seja Int.
-     */
-    @Insert
-    suspend fun inserirChamada(
-        chamada: AttendanceEntity
-    ): Long
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserirChamada(chamada: AttendanceEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserirRegistros(registros: List<AttendanceRecordEntity>)
 
-    /**
-     * Insere todas as presenças/faltas
-     * de uma chamada.
-     */
-    @Insert
-    suspend fun inserirRegistros(
-        registros: List<AttendanceRecordEntity>
-    )
+    @Query("SELECT * FROM attendances ORDER BY dataHora DESC")
+    fun observarChamadas(): Flow<List<AttendanceEntity>>
 
+    @Query("SELECT * FROM attendance_records WHERE attendanceId = :attendanceId")
+    suspend fun buscarRegistrosDaChamada(attendanceId: String): List<AttendanceRecordEntity>
 
-    /**
-     * Retorna todas as chamadas,
-     * da mais recente para a mais antiga.
-     */
-    @Query(
-        """
-        SELECT *
-        FROM attendances
-        ORDER BY dataHora DESC
-        """
-    )
-    fun observarChamadas():
-            Flow<List<AttendanceEntity>>
+    @Query("SELECT COUNT(*) FROM attendance_records WHERE memberId = :memberId")
+    suspend fun contarChamadasDoMembro(memberId: String): Int
 
-
-    /**
-     * Retorna os registros de uma chamada específica.
-     */
-    @Query(
-        """
-        SELECT *
-        FROM attendance_records
-        WHERE attendanceId = :attendanceId
-        """
-    )
-    suspend fun buscarRegistrosDaChamada(
-        attendanceId: Int
-    ): List<AttendanceRecordEntity>
-
-
-    /**
-     * Total de chamadas registradas para o membro.
-     */
-    @Query(
-        """
-        SELECT COUNT(*)
-        FROM attendance_records
-        WHERE memberId = :memberId
-        """
-    )
-    suspend fun contarChamadasDoMembro(
-        memberId: Int
-    ): Int
-
-
-    /**
-     * Quantas dessas chamadas foram presença.
-     */
-    @Query(
-        """
-        SELECT COUNT(*)
-        FROM attendance_records
-        WHERE memberId = :memberId
-        AND presente = 1
-        """
-    )
-    suspend fun contarPresencasDoMembro(
-        memberId: Int
-    ): Int
-
-    @Query("SELECT * FROM attendances WHERE id = :id")
-    suspend fun buscarPorId(id: Int): AttendanceEntity?
+    @Query("SELECT COUNT(*) FROM attendance_records WHERE memberId = :memberId AND presente = 1")
+    suspend fun contarPresencasDoMembro(memberId: String): Int
 
     @Query("SELECT * FROM attendances WHERE serverId = :serverId LIMIT 1")
     suspend fun buscarPorServerId(serverId: String): AttendanceEntity?
 
-    @Query("UPDATE attendances SET serverId = :serverId WHERE id = :id")
-    suspend fun atualizarServerId(id: Int, serverId: String)
-
-    @Query("DELETE FROM attendances WHERE id IN (:ids)")
-    suspend fun excluirChamadas(ids: List<Int>)
+    @Query("DELETE FROM attendances WHERE serverId IN (:ids)")
+    suspend fun excluirChamadas(ids: List<String>)
 
     @Query("""
-        SELECT m.id, m.nome, m.fotoUri, COUNT(r.attendanceId) as count
+        SELECT m.serverId as id, m.nome, m.fotoUri, COUNT(r.attendanceId) as count
         FROM members m
-        JOIN attendance_records r ON m.id = r.memberId
-        JOIN attendances a ON r.attendanceId = a.id
+        JOIN attendance_records r ON m.serverId = r.memberId
+        JOIN attendances a ON r.attendanceId = a.serverId
         WHERE r.presente = 1 AND a.dataHora >= :inicio AND a.dataHora <= :fim
-        GROUP BY m.id
+        GROUP BY m.serverId
         ORDER BY count DESC LIMIT 1
     """)
     suspend fun membroMaisPresenteNoPeriodo(inicio: Long, fim: Long): MemberWithStats?
@@ -118,33 +47,31 @@ interface AttendanceDao {
     @Query("""
         SELECT a.dataHora as timestamp, COUNT(r.memberId) as count
         FROM attendances a
-        JOIN attendance_records r ON a.id = r.attendanceId
+        JOIN attendance_records r ON a.serverId = r.attendanceId
         WHERE r.presente = 1 AND a.dataHora >= :inicio AND a.dataHora <= :fim
-        GROUP BY a.id
+        GROUP BY a.serverId
         ORDER BY count DESC LIMIT 1
     """)
     suspend fun diaMaiorAssiduidadeNoPeriodo(inicio: Long, fim: Long): PeriodStat?
 
-    /**
-     * Retorna a data (timestamp) e se o membro estava presente
-     * em todas as chamadas que ele participou.
-     */
-    @Query(
-        """
+    @Query("""
         SELECT a.dataHora, r.presente
         FROM attendances a
-        JOIN attendance_records r ON a.id = r.attendanceId
+        JOIN attendance_records r ON a.serverId = r.attendanceId
         WHERE r.memberId = :memberId
         ORDER BY a.dataHora ASC
-        """
-    )
-    suspend fun buscarHistoricoDoMembro(
-        memberId: Int
-    ): List<MemberAttendanceInfo>
+    """)
+    suspend fun buscarHistoricoDoMembro(memberId: String): List<MemberAttendanceInfo>
+    
+    @Query("SELECT * FROM attendances")
+    suspend fun buscarTodasChamadas(): List<AttendanceEntity>
+    
+    @Query("SELECT * FROM attendance_records")
+    suspend fun buscarTodosRegistros(): List<AttendanceRecordEntity>
 }
 
 data class MemberWithStats(
-    val id: Int,
+    val id: String,
     val nome: String,
     val fotoUri: String?,
     val count: Int

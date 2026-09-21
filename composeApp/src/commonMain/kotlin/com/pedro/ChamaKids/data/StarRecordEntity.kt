@@ -4,13 +4,14 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
 import androidx.room.Index
+import com.pedro.ChamaKids.IdGenerator
 
 @Entity(
     tableName = "star_records",
     foreignKeys = [
         ForeignKey(
             entity = MemberEntity::class,
-            parentColumns = ["id"],
+            parentColumns = ["serverId"],
             childColumns = ["memberId"],
             onDelete = ForeignKey.CASCADE
         )
@@ -18,14 +19,13 @@ import androidx.room.Index
     indices = [Index("memberId")]
 )
 data class StarRecordEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
-    val memberId: Int,
+    @PrimaryKey
+    val serverId: String = IdGenerator.generate(),
+    val memberId: String, // serverId do membro
     val dataHora: Long,
     val comentario: String?,
     
-    // Sincronia e Auditoria
-    val serverId: String? = null,
+    // Auditoria
     val criadoPor: String? = null,
     val lastUpdated: Long = 0
 )

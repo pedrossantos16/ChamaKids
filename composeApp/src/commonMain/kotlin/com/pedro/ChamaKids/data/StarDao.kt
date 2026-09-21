@@ -2,37 +2,30 @@ package com.pedro.ChamaKids.data
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
 @Dao
 interface StarDao {
-    @Insert
-    suspend fun inserirEstrela(estrela: StarRecordEntity): Long
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserirEstrela(estrela: StarRecordEntity)
 
     @Query("SELECT * FROM star_records WHERE serverId = :serverId LIMIT 1")
     suspend fun buscarPorServerId(serverId: String): StarRecordEntity?
-
-    @Query("UPDATE star_records SET serverId = :serverId WHERE id = :id")
-    suspend fun atualizarServerId(id: Int, serverId: String)
 
     @Query("DELETE FROM star_records WHERE serverId = :serverId")
     suspend fun excluirPorServerId(serverId: String)
 
     @Query("SELECT * FROM star_records")
-    suspend fun observarTodasEstrelas(): List<StarRecordEntity>
+    suspend fun buscarTodasEstrelas(): List<StarRecordEntity>
 
     @Query("SELECT COUNT(*) FROM star_records WHERE memberId = :memberId")
-    suspend fun contarEstrelasDoMembro(memberId: Int): Int
+    suspend fun contarEstrelasDoMembro(memberId: String): Int
 
-    /*
-     * Query para o Ranking:
-     * Retorna os membros ordenados por Estrelas (DESC) e depois por Presenças (DESC).
-     * Nota: A lógica de presença aqui conta o total de registros 'presente = 1'.
-     */
     @Query("""
-        SELECT m.id, m.nome, m.fotoUri, 
-        (SELECT COUNT(*) FROM star_records s WHERE s.memberId = m.id) as totalEstrelas,
-        (SELECT COUNT(*) FROM attendance_records r WHERE r.memberId = m.id AND r.presente = 1) as totalPresencas
+        SELECT m.serverId as id, m.nome, m.fotoUri, 
+        (SELECT COUNT(*) FROM star_records s WHERE s.memberId = m.serverId) as totalEstrelas,
+        (SELECT COUNT(*) FROM attendance_records r WHERE r.memberId = m.serverId AND r.presente = 1) as totalPresencas
         FROM members m
         WHERE m.ativo = 1
         ORDER BY totalEstrelas DESC, totalPresencas DESC
@@ -40,20 +33,20 @@ interface StarDao {
     suspend fun buscarRanking(): List<MemberWithRanking>
 
     @Query("SELECT dataHora FROM star_records WHERE memberId = :memberId")
-    suspend fun buscarHistoricoEstrelas(memberId: Int): List<Long>
+    suspend fun buscarHistoricoEstrelas(memberId: String): List<Long>
 
     @Query("""
-        SELECT m.id, m.nome, m.fotoUri, COUNT(s.id) as count, s.comentario
+        SELECT m.serverId as id, m.nome, m.fotoUri, COUNT(s.serverId) as count, s.comentario
         FROM members m
-        JOIN star_records s ON m.id = s.memberId
+        JOIN star_records s ON m.serverId = s.memberId
         WHERE s.dataHora >= :inicio AND s.dataHora <= :fim
-        GROUP BY m.id
+        GROUP BY m.serverId
         ORDER BY count DESC LIMIT 1
     """)
     suspend fun membroMaisEstrelasNoPeriodo(inicio: Long, fim: Long): MemberWithStarStats?
 
     @Query("""
-        SELECT dataHora as timestamp, COUNT(id) as count
+        SELECT dataHora as timestamp, COUNT(serverId) as count
         FROM star_records
         WHERE dataHora >= :inicio AND dataHora <= :fim
         GROUP BY CAST(dataHora / 86400000 AS INTEGER)
@@ -63,7 +56,7 @@ interface StarDao {
 }
 
 data class MemberWithStarStats(
-    val id: Int,
+    val id: String,
     val nome: String,
     val fotoUri: String?,
     val count: Int,
@@ -71,7 +64,7 @@ data class MemberWithStarStats(
 )
 
 data class MemberWithRanking(
-    val id: Int,
+    val id: String,
     val nome: String,
     val fotoUri: String?,
     val totalEstrelas: Int,

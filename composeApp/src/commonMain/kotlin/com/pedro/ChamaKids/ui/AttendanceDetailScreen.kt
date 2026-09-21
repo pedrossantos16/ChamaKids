@@ -41,65 +41,33 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import kotlinx.datetime.*
 
-/**
- * Tela de consulta de uma chamada já realizada.
- *
- * Não permite modificar presença ou falta.
- */
 @Composable
 fun AttendanceDetailScreen(
-    chamadaId: Int,
+    chamadaId: String,
     attendanceViewModel: AttendanceViewModel,
     memberViewModel: MemberViewModel,
     onVoltar: () -> Unit
 ) {
-
-    var registros by remember {
-        mutableStateOf<List<AttendanceRecordEntity>>(
-            emptyList()
-        )
-    }
-
-    var membros by remember {
-        mutableStateOf<Map<Int, MemberEntity>>(
-            emptyMap()
-        )
-    }
-
-    var membrosComEstrelaNoDia by remember {
-        mutableStateOf<Set<Int>>(emptySet())
-    }
-
-    var carregando by remember {
-        mutableStateOf(true)
-    }
-
-
-    // =====================================================
-    // CARREGA OS REGISTROS DA CHAMADA
-    // =====================================================
+    var registros by remember { mutableStateOf<List<AttendanceRecordEntity>>(emptyList()) }
+    var membros by remember { mutableStateOf<Map<String, MemberEntity>>(emptyMap()) }
+    var membrosComEstrelaNoDia by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var carregando by remember { mutableStateOf(true) }
 
     LaunchedEffect(chamadaId) {
-
         val chamada = attendanceViewModel.buscarChamadaPorId(chamadaId)
         val dataChamada = chamada?.dataHora ?: 0L
 
-        registros =
-            attendanceViewModel
-                .buscarRegistrosDaChamada(
-                    chamadaId
-                )
+        registros = attendanceViewModel.buscarRegistrosDaChamada(chamadaId)
 
-        val mapaMembros = mutableMapOf<Int, MemberEntity>()
-        val idsComEstrela = mutableSetOf<Int>()
+        val mapaMembros = mutableMapOf<String, MemberEntity>()
+        val idsComEstrela = mutableSetOf<String>()
 
         registros.forEach { registro ->
             val membro = memberViewModel.buscarMembroPorId(registro.memberId)
             if (membro != null) {
                 mapaMembros[registro.memberId] = membro
                 
-                // Verifica se o membro recebeu estrela no mesmo dia da chamada
-                val historicoEstrelas = memberViewModel.buscarHistoricoEstrelas(membro.id)
+                val historicoEstrelas = memberViewModel.buscarHistoricoEstrelas(membro.serverId)
                 val temEstrelaNoDia = historicoEstrelas.any { tsEstrela ->
                     val dt1 = Instant.fromEpochMilliseconds(dataChamada).toLocalDateTime(TimeZone.currentSystemDefault())
                     val dt2 = Instant.fromEpochMilliseconds(tsEstrela).toLocalDateTime(TimeZone.currentSystemDefault())
@@ -107,7 +75,7 @@ fun AttendanceDetailScreen(
                 }
                 
                 if (temEstrelaNoDia) {
-                    idsComEstrela.add(membro.id)
+                    idsComEstrela.add(membro.serverId)
                 }
             }
         }
@@ -117,99 +85,43 @@ fun AttendanceDetailScreen(
         carregando = false
     }
 
-
-    // =====================================================
-    // TELA
-    // =====================================================
-
     ChamaKidsScreen(
         titulo = "DETALHES",
         onVoltar = onVoltar
     ) {
-
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(
-                    rememberScrollState()
-                )
+                .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
-
             if (carregando) {
-
-                Text(
-                    text = "Carregando..."
-                )
-
+                Text(text = "Carregando...")
             } else if (registros.isEmpty()) {
-
-                Text(
-                    text =
-                        "Nenhum registro encontrado para esta chamada."
-                )
-
+                Text(text = "Nenhum registro encontrado para esta chamada.")
             } else {
-
-                // =============================================
-                // RESUMO
-                // =============================================
-
-                val presentes =
-                    registros.count {
-                        it.presente
-                    }
-
-                val faltas =
-                    registros.size -
-                            presentes
-
-                val porcentagemPresentes =
-                    if (registros.isNotEmpty()) {
-                        (presentes * 100) / registros.size
-                    } else {
-                        0
-                    }
-
+                val presentes = registros.count { it.presente }
+                val faltas = registros.size - presentes
+                val porcentagemPresentes = if (registros.isNotEmpty()) (presentes * 100) / registros.size else 0
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Column {
-
-                        Text(
-                            text = "Presentes: $presentes",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        Text(
-                            text = "Faltas: $faltas",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = "Presentes: $presentes", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Faltas: $faltas", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     Box {
-
-                        // Contorno preto
                         Text(
                             text = "$porcentagemPresentes%",
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
-                            style = TextStyle(
-                                drawStyle = Stroke(
-                                    width = 3f
-                                )
-                            ),
+                            style = TextStyle(drawStyle = Stroke(width = 3f)),
                             color = Color.Black
                         )
-
-                        // Preenchimento verde
                         Text(
                             text = "$porcentagemPresentes%",
                             fontSize = 34.sp,
@@ -219,88 +131,31 @@ fun AttendanceDetailScreen(
                     }
                 }
 
-
-                Spacer(
-                    modifier =
-                        Modifier.height(20.dp)
-                )
-
-
-                // =============================================
-                // MEMBROS
-                // =============================================
+                Spacer(modifier = Modifier.height(20.dp))
 
                 registros.forEach { registro ->
-
-                    val membro =
-                        membros[
-                            registro.memberId
-                        ]
-
+                    val membro = membros[registro.memberId]
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                bottom = 12.dp
-                            ),
-
-                        shape =
-                            RoundedCornerShape(
-                                12.dp
-                            ),
-
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    if (membrosComEstrelaNoDia.contains(registro.memberId)) {
-                                        Color(0xFFFFD600) // Amarelo estrela
-                                    } else {
-                                        Color.White
-                                    }
-                            )
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (membrosComEstrelaNoDia.contains(registro.memberId)) Color(0xFFFFD600) else Color.White
+                        )
                     ) {
-
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp),
-
-                            verticalAlignment =
-                                Alignment.CenterVertically,
-
-                            horizontalArrangement =
-                                Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth().padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-
-
-                            // NOME
-
                             Text(
-                                text =
-                                    membro?.nome
-                                        ?: "Membro não encontrado",
-
+                                text = membro?.nome ?: "Membro não encontrado",
                                 fontSize = 17.sp,
-
-                                fontWeight =
-                                    FontWeight.SemiBold,
-
-                                modifier =
-                                    Modifier.weight(1f)
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f)
                             )
-
-                            // PRESENTE / FALTOU
-
-                            Canvas(
-                                modifier = Modifier.size(18.dp)
-                            ) {
+                            Canvas(modifier = Modifier.size(18.dp)) {
                                 drawCircle(
-                                    color =
-                                        if (registro.presente) {
-                                            Color(0xFF39FF14) // verde neon
-                                        } else {
-                                            Color(0xFFFF1744) // vermelho
-                                        }
+                                    color = if (registro.presente) Color(0xFF39FF14) else Color(0xFFFF1744)
                                 )
                             }
                         }

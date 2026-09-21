@@ -4,13 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pedro.ChamaKids.DeviceIdentifier
 import com.pedro.ChamaKids.data.DatabaseProvider
+import com.pedro.ChamaKids.data.FirebaseSyncManager
 import com.pedro.ChamaKids.data.SecurityStateEntity
 import com.pedro.ChamaKids.data.UserEntity
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlin.random.Random
@@ -24,6 +24,12 @@ class UserViewModel : ViewModel() {
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
+    )
+
+    val isFirstAccess = usuarios.map { it.isEmpty() }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = true
     )
 
     private val _securityState = MutableStateFlow<SecurityStateEntity?>(null)
@@ -43,6 +49,26 @@ class UserViewModel : ViewModel() {
     init {
         refreshSecurityState()
         startBlockCheckTimer()
+        listenToRemoteUsers()
+    }
+
+    private fun listenToRemoteUsers() {
+        viewModelScope.launch {
+            try {
+                Firebase.firestore.collection("users").snapshots().collect { snapshot ->
+                    snapshot.documents.forEach { doc ->
+                        val data = doc.data<Map<String, Any?>>()
+                        val user = UserEntity(
+                            serverId = doc.id,
+                            nome = data["nome"] as? String ?: "",
+                            fraseSecreta = data["fraseSecreta"] as? String ?: "",
+                            lastUpdated = (data["lastUpdated"] as? Number)?.toLong() ?: 0
+                        )
+                        userDao.inserir(user)
+                    }
+                }
+            } catch (_: Exception) { }
+        }
     }
 
     fun refreshSecurityState() {
@@ -120,7 +146,13 @@ class UserViewModel : ViewModel() {
 
     fun cadastrarUsuario(nome: String, frase: String) {
         viewModelScope.launch {
-            userDao.inserir(UserEntity(nome = nome, fraseSecreta = frase))
+            val user = UserEntity(
+                nome = nome,
+                fraseSecreta = frase,
+                lastUpdated = Clock.System.now().toEpochMilliseconds()
+            )
+            userDao.inserir(user)
+            FirebaseSyncManager.syncUser(user)
         }
     }
 
@@ -146,7 +178,7 @@ class UserViewModel : ViewModel() {
         
         val distrações = mutableSetOf<String>()
         while (distrações.size < 4) {
-            val tipo = Random.nextInt(3) // 0: Palavra, 1: Duas palavras, 2: Três palavras
+            val tipo = Random.nextInt(3)
             val item = when(tipo) {
                 0 -> palavras.random()
                 1 -> "${palavras.random()} ${adjetivos.random()}"

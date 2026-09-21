@@ -2,6 +2,8 @@ package com.pedro.ChamaKids.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pedro.ChamaKids.data.AttendanceEntity
+import com.pedro.ChamaKids.data.AttendanceRecordEntity
 import com.pedro.ChamaKids.data.AttendanceRepository
 import com.pedro.ChamaKids.data.DatabaseProvider
 import kotlinx.coroutines.flow.*
@@ -11,10 +13,10 @@ import kotlinx.datetime.Clock
 class AttendanceViewModel : ViewModel() {
 
     private val database = DatabaseProvider.getDatabase()
-    private val repository = AttendanceRepository(database)
+    private val repository = AttendanceRepository(database.attendanceDao())
 
-    private val _frequencias = MutableStateFlow<Map<Int, Float?>>(emptyMap())
-    val frequencias: StateFlow<Map<Int, Float?>> = _frequencias.asStateFlow()
+    private val _frequencias = MutableStateFlow<Map<String, Float?>>(emptyMap())
+    val frequencias: StateFlow<Map<String, Float?>> = _frequencias.asStateFlow()
 
     val chamadas = repository.chamadas.stateIn(
         scope = viewModelScope,
@@ -22,30 +24,53 @@ class AttendanceViewModel : ViewModel() {
         initialValue = emptyList()
     )
 
-    fun salvarChamada(nome: String?, presencas: Map<Int, Boolean>, onSucesso: () -> Unit = {}) {
+    fun salvarChamada(nome: String?, presencas: Map<String, Boolean>, criadoPor: String?, onSucesso: () -> Unit = {}) {
         viewModelScope.launch {
-            repository.salvarChamada(nome, presencas)
+            val timestamp = Clock.System.now().toEpochMilliseconds()
+            val chamada = AttendanceEntity(
+                nome = nome,
+                dataHora = timestamp,
+                criadoPor = criadoPor
+            )
+            val registros = presencas.map { (memberId, presente) ->
+                AttendanceRecordEntity(
+                    attendanceId = chamada.serverId,
+                    memberId = memberId,
+                    presente = presente
+                )
+            }
+            repository.salvarChamada(chamada, registros)
             onSucesso()
         }
     }
 
-    suspend fun buscarRegistrosDaChamada(chamadaId: Int) = repository.buscarRegistros(chamadaId)
-    suspend fun buscarChamadaPorId(id: Int) = repository.buscarChamadaPorId(id)
+    suspend fun buscarRegistrosDaChamada(chamadaId: String) = repository.buscarRegistrosDaChamada(chamadaId)
+    
+    suspend fun buscarChamadaPorId(serverId: String): AttendanceEntity? {
+        return database.attendanceDao().buscarPorServerId(serverId)
+    }
 
-    fun carregarFrequencias(membrosIds: List<Int>) {
+    fun carregarFrequencias(membrosIds: List<String>) {
         viewModelScope.launch {
-            val resultado = mutableMapOf<Int, Float?>()
+            val resultado = mutableMapOf<String, Float?>()
             membrosIds.forEach { memberId ->
-                resultado[memberId] = repository.calcularFrequencia(memberId)
+                val presencas = repository.contarPresencasDoMembro(memberId)
+                val total = repository.contarChamadasDoMembro(memberId)
+                resultado[memberId] = if (total > 0) presencas.toFloat() / total else null
             }
             _frequencias.value = resultado
         }
     }
 
-    suspend fun buscarHistorico(memberId: Int) = repository.buscarHistorico(memberId)
-    suspend fun calcularFrequencia(memberId: Int) = repository.calcularFrequencia(memberId)
+    suspend fun buscarHistorico(memberId: String) = repository.buscarHistoricoDoMembro(memberId)
 
-    fun excluirChamadas(ids: List<Int>) {
+    suspend fun calcularFrequencia(memberId: String): Float? {
+        val presencas = repository.contarPresencasDoMembro(memberId)
+        val total = repository.contarChamadasDoMembro(memberId)
+        return if (total > 0) presencas.toFloat() / total else null
+    }
+
+    fun excluirChamadas(ids: List<String>) {
         viewModelScope.launch {
             repository.excluirChamadas(ids)
         }

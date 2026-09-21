@@ -9,10 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +26,7 @@ import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.coroutines.delay
 
 @Composable
 fun MenuScreen(
@@ -40,8 +39,18 @@ fun MenuScreen(
     onRelatorio: () -> Unit,
     onGuia: () -> Unit,
     onHistorico: () -> Unit,
-    onUsuarios: () -> Unit
+    onUsuarios: () -> Unit,
+    isFirstAccess: Boolean
 ) {
+    var showMessage by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showMessage) {
+        if (showMessage) {
+            delay(2000)
+            showMessage = false
+        }
+    }
+
     ChamaKidsScreen(
         titulo = null,
         onVoltar = onVoltar,
@@ -63,29 +72,43 @@ fun MenuScreen(
             }
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 40.dp, bottom = 40.dp)
-        ) {
-            OpcaoMenu("CHAMADA", IconeMenu.CHAMADA, onChamada)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("MEMBROS", IconeMenu.MEMBROS, onMembros)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("LISTA", IconeMenu.LISTA, onLista)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("CLASSIFICAR", IconeMenu.CLASSIFICAR, onClassificar)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("RANKING", IconeMenu.RANKING, onRanking)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("RELATÓRIO", IconeMenu.RELATORIO, onRelatorio)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("GUIA", IconeMenu.GUIA, onGuia)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("HISTÓRICO", IconeMenu.HISTORICO, onHistorico)
-            Spacer(modifier = Modifier.height(24.dp))
-            OpcaoMenu("USUÁRIOS", IconeMenu.USUARIOS, onUsuarios)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 20.dp, end = 20.dp, top = 40.dp, bottom = 40.dp)
+            ) {
+                OpcaoMenu("CHAMADA", IconeMenu.CHAMADA, if (isFirstAccess) { { showMessage = true } } else onChamada, isFirstAccess)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("MEMBROS", IconeMenu.MEMBROS, if (isFirstAccess) { { showMessage = true } } else onMembros, isFirstAccess)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("LISTA", IconeMenu.LISTA, if (isFirstAccess) { { showMessage = true } } else onLista, isFirstAccess)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("CLASSIFICAR", IconeMenu.CLASSIFICAR, if (isFirstAccess) { { showMessage = true } } else onClassificar, isFirstAccess)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("RANKING", IconeMenu.RANKING, if (isFirstAccess) { { showMessage = true } } else onRanking, isFirstAccess)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("RELATÓRIO", IconeMenu.RELATORIO, if (isFirstAccess) { { showMessage = true } } else onRelatorio, isFirstAccess)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("GUIA", IconeMenu.GUIA, onGuia, false)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("HISTÓRICO", IconeMenu.HISTORICO, if (isFirstAccess) { { showMessage = true } } else onHistorico, isFirstAccess)
+                Spacer(modifier = Modifier.height(24.dp))
+                OpcaoMenu("USUÁRIOS", IconeMenu.USUARIOS, onUsuarios, false)
+            }
+
+            if (showMessage) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 50.dp)
+                        .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                ) {
+                    Text("Cadastre um usuário primeiro", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
@@ -95,7 +118,7 @@ private enum class IconeMenu {
 }
 
 @Composable
-private fun OpcaoMenu(titulo: String, icone: IconeMenu, onClick: () -> Unit) {
+private fun OpcaoMenu(titulo: String, icone: IconeMenu, onClick: () -> Unit, bloqueado: Boolean) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -103,24 +126,35 @@ private fun OpcaoMenu(titulo: String, icone: IconeMenu, onClick: () -> Unit) {
             .border(1.5.dp, Color.Black, RoundedCornerShape(8.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = ChamaKidsAction)
+        colors = CardDefaults.cardColors(
+            containerColor = if (bloqueado) Color.LightGray else ChamaKidsAction
+        )
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconeOpcaoMenu(tipo = icone)
+            IconeOpcaoMenu(tipo = icone, cor = if (bloqueado) Color.Gray else Color.Black)
             Spacer(modifier = Modifier.width(16.dp))
-            Text(text = titulo, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            Text(text = ">", fontSize = 26.sp)
+            Text(
+                text = titulo, 
+                fontSize = 16.sp, 
+                fontWeight = FontWeight.SemiBold, 
+                modifier = Modifier.weight(1f),
+                color = if (bloqueado) Color.Gray else Color.Black
+            )
+            if (!bloqueado) {
+                Text(text = ">", fontSize = 26.sp)
+            } else {
+                Text(text = "🔒", fontSize = 20.sp)
+            }
         }
     }
 }
 
 @Composable
-private fun IconeOpcaoMenu(tipo: IconeMenu) {
+private fun IconeOpcaoMenu(tipo: IconeMenu, cor: Color = Color.Black) {
     Canvas(modifier = Modifier.size(28.dp)) {
-        val cor = Color.Black
         val largura = 2.dp.toPx()
         when (tipo) {
             IconeMenu.CHAMADA -> {

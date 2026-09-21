@@ -5,124 +5,32 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-
 import kotlinx.coroutines.flow.Flow
-
 
 @Dao
 interface MemberDao {
 
-    /*
-     * Retorna apenas membros ativos.
-     *
-     * Essa será a lista usada normalmente
-     * na tela de membros e nas chamadas.
-     */
-    @Query(
-        """
-        SELECT *
-        FROM members
-        WHERE ativo = 1
-        ORDER BY nome ASC
-        """
-    )
-    fun observarMembrosAtivos():
-            Flow<List<MemberEntity>>
+    @Query("SELECT * FROM members WHERE ativo = 1 ORDER BY nome ASC")
+    fun observarMembrosAtivos(): Flow<List<MemberEntity>>
 
-
-    /*
-     * Retorna todos os membros,
-     * inclusive os que foram inativados.
-     */
-    @Query(
-        """
-        SELECT *
-        FROM members
-        ORDER BY nome ASC
-        """
-    )
-    fun observarTodosMembros():
-            Flow<List<MemberEntity>>
-
-
-    /*
-     * Busca uma ficha específica.
-     *
-     * Seu MemberEntity usa Int como ID,
-     * então aqui também deve ser Int.
-     */
-    @Query(
-        """
-        SELECT *
-        FROM members
-        WHERE id = :id
-        LIMIT 1
-        """
-    )
-    suspend fun buscarPorId(
-        id: Int
-    ): MemberEntity?
-
+    @Query("SELECT * FROM members ORDER BY nome ASC")
+    fun observarTodosMembros(): Flow<List<MemberEntity>>
 
     @Query("SELECT * FROM members WHERE serverId = :serverId LIMIT 1")
     suspend fun buscarPorServerId(serverId: String): MemberEntity?
 
-    @Query("UPDATE members SET serverId = :serverId WHERE id = :id")
-    suspend fun atualizarServerId(id: Int, serverId: String)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserir(membro: MemberEntity)
 
-    @Query("SELECT * FROM members WHERE nome = :nome AND cpf = :cpf LIMIT 1")
-    suspend fun buscarPorNomeECpf(nome: String, cpf: String): MemberEntity?
-
-    /*
-     * Cadastra um novo membro.
-     *
-     * O Room retorna Long para o ID gerado,
-     * mesmo que a PK da Entity seja Int.
-     */
-    @Insert(
-        onConflict = OnConflictStrategy.REPLACE
-    )
-    suspend fun inserir(
-        membro: MemberEntity
-    ): Long
-
-
-    /*
-     * Atualiza uma ficha já existente.
-     */
     @Update
-    suspend fun atualizar(
-        membro: MemberEntity
-    )
+    suspend fun atualizar(membro: MemberEntity)
 
+    @Query("UPDATE members SET ativo = 0 WHERE serverId = :serverId")
+    suspend fun inativar(serverId: String)
 
-    /*
-     * "Remove" o membro sem apagar
-     * seus dados e histórico.
-     */
-    @Query(
-        """
-        UPDATE members
-        SET ativo = 0
-        WHERE id = :id
-        """
-    )
-    suspend fun inativar(
-        id: Int
-    )
-
-
-    /*
-     * Reativa um membro anteriormente inativado.
-     */
-    @Query(
-        """
-        UPDATE members
-        SET ativo = 1
-        WHERE id = :id
-        """
-    )
-    suspend fun reativar(
-        id: Int
-    )
+    @Query("UPDATE members SET ativo = 1 WHERE serverId = :serverId")
+    suspend fun reativar(serverId: String)
+    
+    @Query("SELECT * FROM members")
+    suspend fun buscarTodos(): List<MemberEntity>
 }

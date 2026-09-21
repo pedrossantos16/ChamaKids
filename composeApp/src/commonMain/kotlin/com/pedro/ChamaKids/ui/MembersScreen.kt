@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,7 +27,7 @@ import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
 fun MembersScreen(
     onVoltar: () -> Unit,
     onAdicionarMembro: () -> Unit,
-    onAbrirMembro: (Int) -> Unit,
+    onAbrirMembro: (String) -> Unit,
     viewModel: MemberViewModel
 ) {
     val membros by viewModel.membros.collectAsState()
@@ -42,7 +41,6 @@ fun MembersScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
-            // LISTA ROLÁVEL
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -62,7 +60,7 @@ fun MembersScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp)
-                                .clickable { onAbrirMembro(membro.id) },
+                                .clickable { onAbrirMembro(membro.serverId) },
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F1F5))
                         ) {
@@ -72,7 +70,6 @@ fun MembersScreen(
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // FOTO
                                 Box(
                                     modifier = Modifier
                                         .size(52.dp)
@@ -89,7 +86,6 @@ fun MembersScreen(
 
                                 Spacer(modifier = Modifier.width(14.dp))
 
-                                // NOME
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = membro.nome,
@@ -111,12 +107,11 @@ fun MembersScreen(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
-            // BOTÃO FIXO
             Button(
                 onClick = onAdicionarMembro,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 20.dp, bottom = 45.dp) // Subir o botão da extremidade
+                    .padding(top = 20.dp, bottom = 45.dp)
                     .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = ChamaKidsAction, contentColor = Color.Black),
                 border = BorderStroke(1.5.dp, Color.Black)

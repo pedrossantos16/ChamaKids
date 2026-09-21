@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,7 +23,7 @@ import com.pedro.ChamaKids.ui.theme.ChamaKidsCard
 
 @Composable
 fun MemberDetailScreen(
-    membroId: Int,
+    serverId: String,
     viewModel: MemberViewModel,
     onVoltar: () -> Unit
 ) {
@@ -53,13 +52,8 @@ fun MemberDetailScreen(
     var celularMae by remember { mutableStateOf("") }
     var fotoUri by remember { mutableStateOf<String?>(null) }
 
-    /*
-    // TODO: Implementar seletor de foto KMP
-    // No Android era usado rememberLauncherForActivityResult
-    */
-
-    LaunchedEffect(membroId) {
-        val membro = viewModel.buscarMembroPorId(membroId)
+    LaunchedEffect(serverId) {
+        val membro = viewModel.buscarMembroPorId(serverId)
         if (membro != null) {
             membroOriginal = membro
             nome = membro.nome
@@ -102,9 +96,7 @@ fun MemberDetailScreen(
                 if (editando) {
                     Box(modifier = Modifier.fillMaxWidth().height(200.dp).padding(top = 20.dp), contentAlignment = Alignment.Center) {
                         Card(
-                            modifier = Modifier.size(180.dp).clickable { 
-                                // TODO: Chamar seletor de foto KMP
-                            },
+                            modifier = Modifier.size(180.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
@@ -191,7 +183,6 @@ fun MemberDetailScreen(
                         ) { valor -> celularMae = valor.filter { it.isDigit() }.take(11) }
                     }
                 } else {
-                    // MODO VISUALIZAÇÃO
                     Box(modifier = Modifier.size(180.dp).align(Alignment.CenterHorizontally).padding(top = 20.dp).clip(CircleShape).background(Color(0xFFD9D9D9)), contentAlignment = Alignment.Center) {
                         MemberImage(
                             fotoUri = fotoUri,
@@ -240,11 +231,10 @@ fun MemberDetailScreen(
                 Spacer(modifier = Modifier.height(30.dp))
             }
 
-            // BOTÕES FIXOS
             if (!editando) {
                 Button(onClick = { editando = true }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black), border = BorderStroke(1.5.dp, Color.Black)) { Text("EDITAR") }
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = { viewModel.inativarMembro(membroId); onVoltar() }, modifier = Modifier.fillMaxWidth().padding(bottom = 45.dp).height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White), border = BorderStroke(1.5.dp, Color.Black)) { Text("EXCLUIR") }
+                Button(onClick = { viewModel.inativarMembro(serverId); onVoltar() }, modifier = Modifier.fillMaxWidth().padding(bottom = 45.dp).height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White), border = BorderStroke(1.5.dp, Color.Black)) { Text("EXCLUIR") }
             } else {
                 Button(onClick = {
                     val dataIso = if (dataNascimento.contains("/")) {
@@ -256,7 +246,6 @@ fun MemberDetailScreen(
 
                     val atualizado = membroOriginal!!.copy(nome = nome.trim(), cpf = cpf, rg = rg, dataNascimento = dataIso.ifBlank { null }, endereco = endereco, celularMembro = celularMembro, telefone = telefone, nomePai = nomePai, celularPai = celularPai, nomeMae = nomeMae, celularMae = celularMae, fotoUri = fotoUri)
                     
-                    // Se a foto mudou, apaga a física antiga
                     if (membroOriginal?.fotoUri != null && membroOriginal?.fotoUri != fotoUri) {
                         FileUtils.excluirArquivo(membroOriginal?.fotoUri)
                     }
@@ -268,12 +257,9 @@ fun MemberDetailScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(onClick = {
                     val o = membroOriginal!!
-
-                    // Se escolheu uma foto nova mas desistiu, apaga a foto nova física
                     if (!fotoUri.isNullOrBlank() && fotoUri != o.fotoUri) {
                         FileUtils.excluirArquivo(fotoUri)
                     }
-
                     nome = o.nome; cpf = o.cpf; rg = o.rg; dataNascimento = formatarDataBR(o.dataNascimento)
                     endereco = o.endereco; celularMembro = o.celularMembro; telefone = o.telefone
                     nomePai = o.nomePai; celularPai = o.celularPai; nomeMae = o.nomeMae; celularMae = o.celularMae
@@ -292,32 +278,4 @@ private fun InfoCard(label: String, value: String) {
             Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
         }
     }
-}
-
-@Composable
-fun CampoFicha(
-    valor: String,
-    titulo: String,
-    habilitado: Boolean,
-    modifier: Modifier = Modifier,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
-    onChange: (String) -> Unit
-) {
-    OutlinedTextField(
-        value = valor,
-        onValueChange = onChange,
-        enabled = habilitado,
-        label = { Text(titulo) },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        visualTransformation = visualTransformation,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            disabledContainerColor = Color(0xFFE2E2E2),
-            disabledTextColor = Color(0xFF666666),
-            disabledBorderColor = Color(0xFFAAAAAA)
-        ),
-        modifier = modifier.fillMaxWidth()
-    )
 }

@@ -44,29 +44,30 @@ class MemberViewModel : ViewModel() {
         }
     }
 
-    fun inativarMembro(id: Int) {
+    fun inativarMembro(serverId: String) {
         viewModelScope.launch {
-            repository.inativar(id)
+            repository.inativar(serverId)
         }
     }
 
-    fun reativarMembro(id: Int) {
+    fun reativarMembro(serverId: String) {
         viewModelScope.launch {
-            repository.reativar(id)
+            repository.reativar(serverId)
         }
     }
 
-    suspend fun buscarMembroPorId(id: Int): MemberEntity? {
-        return repository.buscarPorId(id)
+    suspend fun buscarMembroPorId(serverId: String): MemberEntity? {
+        return repository.buscarPorId(serverId)
     }
 
-    fun darEstrela(memberId: Int, comentario: String?, onSucesso: () -> Unit) {
+    fun darEstrela(memberId: String, comentario: String?, criadoPor: String?, onSucesso: () -> Unit) {
         viewModelScope.launch {
             repository.darEstrela(
                 StarRecordEntity(
                     memberId = memberId,
                     dataHora = Clock.System.now().toEpochMilliseconds(),
-                    comentario = comentario
+                    comentario = comentario,
+                    criadoPor = criadoPor
                 )
             )
             onSucesso()
@@ -77,7 +78,7 @@ class MemberViewModel : ViewModel() {
         return repository.buscarRanking()
     }
 
-    suspend fun buscarHistoricoEstrelas(memberId: Int): List<Long> {
+    suspend fun buscarHistoricoEstrelas(memberId: String): List<Long> {
         return repository.buscarHistoricoEstrelas(memberId)
     }
 

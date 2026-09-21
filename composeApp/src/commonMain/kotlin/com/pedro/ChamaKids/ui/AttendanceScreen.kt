@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,14 +23,16 @@ import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
 fun AttendanceScreen(
     onVoltar: () -> Unit,
     memberViewModel: MemberViewModel,
-    attendanceViewModel: AttendanceViewModel
+    attendanceViewModel: AttendanceViewModel,
+    userViewModel: UserViewModel
 ) {
 
     val membrosBanco by memberViewModel.membros.collectAsState()
     val frequencias by attendanceViewModel.frequencias.collectAsState()
+    val currentUser by userViewModel.currentUser.collectAsState()
 
     var presencas by remember {
-        mutableStateOf<Map<Int, Boolean>>(emptyMap())
+        mutableStateOf<Map<String, Boolean>>(emptyMap())
     }
 
     var mostrarDialogNome by remember { mutableStateOf(false) }
@@ -39,9 +40,9 @@ fun AttendanceScreen(
 
     LaunchedEffect(membrosBanco) {
         presencas = membrosBanco.associate { membro ->
-            membro.id to true
+            membro.serverId to true
         }
-        attendanceViewModel.carregarFrequencias(membrosBanco.map { it.id })
+        attendanceViewModel.carregarFrequencias(membrosBanco.map { it.serverId })
     }
 
     ChamaKidsScreen(
@@ -61,8 +62,8 @@ fun AttendanceScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 membrosBanco.forEach { membro ->
-                    val presente = presencas[membro.id] ?: true
-                    val frequencia = frequencias[membro.id]
+                    val presente = presencas[membro.serverId] ?: true
+                    val frequencia = frequencias[membro.serverId]
 
                     Card(
                         modifier = Modifier
@@ -120,7 +121,7 @@ fun AttendanceScreen(
                                 checked = presente,
                                 onCheckedChange = { novoEstado ->
                                     presencas = presencas.toMutableMap().apply {
-                                        this[membro.id] = novoEstado
+                                        this[membro.serverId] = novoEstado
                                     }
                                 }
                             )
@@ -165,6 +166,7 @@ fun AttendanceScreen(
                     attendanceViewModel.salvarChamada(
                         nome = nomeChamada.ifBlank { null },
                         presencas = presencas,
+                        criadoPor = currentUser?.nome,
                         onSucesso = {
                             onVoltar()
                         }

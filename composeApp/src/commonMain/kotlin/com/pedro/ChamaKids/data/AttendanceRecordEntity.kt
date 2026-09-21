@@ -3,18 +3,8 @@ package com.pedro.ChamaKids.data
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import com.pedro.ChamaKids.IdGenerator
 
-
-/**
- * Representa a presença de UM membro
- * em UMA chamada.
- *
- * Exemplo:
- *
- * chamada 10
- * Pedro
- * presente = true
- */
 @Entity(
     tableName = "attendance_records",
 
@@ -27,14 +17,14 @@ import androidx.room.Index
 
         ForeignKey(
             entity = AttendanceEntity::class,
-            parentColumns = ["id"],
+            parentColumns = ["serverId"],
             childColumns = ["attendanceId"],
             onDelete = ForeignKey.CASCADE
         ),
 
         ForeignKey(
             entity = MemberEntity::class,
-            parentColumns = ["id"],
+            parentColumns = ["serverId"],
             childColumns = ["memberId"],
             onDelete = ForeignKey.NO_ACTION
         )
@@ -47,23 +37,13 @@ import androidx.room.Index
 )
 data class AttendanceRecordEntity(
 
-    /*
-     * ID da chamada.
-     */
-    val attendanceId: Int,
+    val attendanceId: String, // serverId da chamada
 
-    /*
-     * ID do membro.
-     */
-    val memberId: Int,
+    val memberId: String, // serverId do membro
 
-    /*
-     * true  = presente
-     * false = faltou
-     */
     val presente: Boolean,
 
     // Sincronia
-    val serverId: String? = null,
+    val serverId: String = IdGenerator.generate(),
     val lastUpdated: Long = 0
 )

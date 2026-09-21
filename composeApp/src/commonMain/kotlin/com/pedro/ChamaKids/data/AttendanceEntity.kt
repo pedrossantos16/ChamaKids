@@ -2,36 +2,21 @@ package com.pedro.ChamaKids.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.pedro.ChamaKids.IdGenerator
 
-
-/**
- * Representa uma chamada realizada.
- *
- * Cada vez que o responsável tocar em
- * "SALVAR CHAMADA", será criado um registro aqui.
- */
 @Entity(
     tableName = "attendances"
 )
 data class AttendanceEntity(
 
-    @PrimaryKey(
-        autoGenerate = true
-    )
-    val id: Int = 0,
+    @PrimaryKey
+    val serverId: String = IdGenerator.generate(),
 
     val nome: String? = null,
 
-    /*
-     * Data e hora da chamada.
-     *
-     * Vamos salvar em milissegundos porque isso
-     * facilita ordenação, comparação e conversão.
-     */
     val dataHora: Long,
 
-    // Sincronia e Auditoria
-    val serverId: String? = null,
+    // Auditoria
     val criadoPor: String? = null,
     val lastUpdated: Long = 0
 )

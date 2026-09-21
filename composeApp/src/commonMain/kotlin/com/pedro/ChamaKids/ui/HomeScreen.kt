@@ -38,7 +38,7 @@ fun HomeScreen(
     val yellowStar = Color(0xFFFFD600)
     val currentUser by userViewModel.currentUser.collectAsState()
     val isBlocked by userViewModel.isBlocked.collectAsState()
-    val usuarios by userViewModel.usuarios.collectAsState()
+    val isFirstAccess by userViewModel.isFirstAccess.collectAsState()
 
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
     var downloadProgress by remember { mutableStateOf<Float?>(null) }
@@ -233,7 +233,7 @@ fun HomeScreen(
         }
 
         // Overlay de Segurança
-        if ((currentUser == null || isBlocked) && usuarios.isNotEmpty()) {
+        if (!isFirstAccess && (currentUser == null || isBlocked)) {
             SecurityOverlay(viewModel = userViewModel)
         }
 

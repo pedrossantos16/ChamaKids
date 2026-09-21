@@ -1,61 +1,41 @@
 package com.pedro.ChamaKids.data
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.datetime.Clock
 
 class AttendanceRepository(
-    private val database: ChamaKidsDatabase
+    private val attendanceDao: AttendanceDao
 ) {
-
-    private val attendanceDao = database.attendanceDao()
-
     val chamadas: Flow<List<AttendanceEntity>> = attendanceDao.observarChamadas()
 
-    suspend fun salvarChamada(
-        nome: String?,
-        presencas: Map<Int, Boolean>
-    ) {
-        // Removido withTransaction temporariamente para destravar o build do iOS
-        val chamadaId = attendanceDao.inserirChamada(
-            AttendanceEntity(
-                nome = nome,
-                dataHora = Clock.System.now().toEpochMilliseconds()
-            )
-        ).toInt()
-
-        val registros = presencas.map { (memberId, presente) ->
-            AttendanceRecordEntity(
-                attendanceId = chamadaId,
-                memberId = memberId,
-                presente = presente
-            )
-        }
-
+    suspend fun salvarChamada(chamada: AttendanceEntity, registros: List<AttendanceRecordEntity>) {
+        attendanceDao.inserirChamada(chamada)
         attendanceDao.inserirRegistros(registros)
-
-        // Sincroniza com Firebase
-        val chamada = attendanceDao.buscarPorId(chamadaId)
-        if (chamada != null) {
-            FirebaseSyncManager.syncAttendance(chamada, registros)
-        }
+        FirebaseSyncManager.syncAttendance(chamada, registros)
     }
 
-    suspend fun buscarRegistros(chamadaId: Int) = attendanceDao.buscarRegistrosDaChamada(chamadaId)
-    suspend fun buscarChamadaPorId(id: Int) = attendanceDao.buscarPorId(id)
-
-    suspend fun calcularFrequencia(memberId: Int): Float? {
-        val total = attendanceDao.contarChamadasDoMembro(memberId)
-        if (total == 0) return null
-        val presentes = attendanceDao.contarPresencasDoMembro(memberId)
-        return (presentes.toFloat() / total.toFloat()) * 100f
+    suspend fun buscarRegistrosDaChamada(attendanceId: String): List<AttendanceRecordEntity> {
+        return attendanceDao.buscarRegistrosDaChamada(attendanceId)
     }
 
-    suspend fun buscarHistorico(memberId: Int) = attendanceDao.buscarHistoricoDoMembro(memberId)
-    suspend fun excluirChamadas(ids: List<Int>) = attendanceDao.excluirChamadas(ids)
+    suspend fun contarChamadasDoMembro(memberId: String): Int {
+        return attendanceDao.contarChamadasDoMembro(memberId)
+    }
+
+    suspend fun contarPresencasDoMembro(memberId: String): Int {
+        return attendanceDao.contarPresencasDoMembro(memberId)
+    }
+
+    suspend fun excluirChamadas(ids: List<String>) {
+        attendanceDao.excluirChamadas(ids)
+        // Opcional: deletar no Firestore também
+    }
 
     suspend fun buscarMembroMaisPresente(inicio: Long, fim: Long) =
         attendanceDao.membroMaisPresenteNoPeriodo(inicio, fim)
 
     suspend fun buscarDiaMaiorAssiduidade(inicio: Long, fim: Long) =
         attendanceDao.diaMaiorAssiduidadeNoPeriodo(inicio, fim)
+
+    suspend fun buscarHistoricoDoMembro(memberId: String) =
+        attendanceDao.buscarHistoricoDoMembro(memberId)
 }

@@ -28,10 +28,10 @@ import kotlinx.datetime.*
 fun HistoryScreen(
     viewModel: AttendanceViewModel,
     onVoltar: () -> Unit,
-    onAbrirChamada: (Int) -> Unit
+    onAbrirChamada: (String) -> Unit
 ) {
     val chamadas by viewModel.chamadas.collectAsState()
-    val selecionados = remember { mutableStateListOf<Int>() }
+    val selecionados = remember { mutableStateListOf<String>() }
 
     ChamaKidsScreen(
         titulo = "HISTÓRICO",
@@ -69,7 +69,7 @@ fun HistoryScreen(
                 Text(text = "Nenhuma chamada registrada.", color = Color.Gray)
             } else {
                 chamadas.forEach { chamada ->
-                    val isSelecionado = selecionados.contains(chamada.id)
+                    val isSelecionado = selecionados.contains(chamada.serverId)
                     
                     val zdt = Instant.fromEpochMilliseconds(chamada.dataHora).toLocalDateTime(TimeZone.currentSystemDefault())
                     val data = "${zdt.dayOfMonth.toString().padStart(2, '0')}/${zdt.monthNumber.toString().padStart(2, '0')}/${zdt.year}"
@@ -83,12 +83,12 @@ fun HistoryScreen(
                             .combinedClickable(
                                 onClick = {
                                     if (selecionados.isNotEmpty()) {
-                                        if (isSelecionado) selecionados.remove(chamada.id)
-                                        else selecionados.add(chamada.id)
-                                    } else onAbrirChamada(chamada.id)
+                                        if (isSelecionado) selecionados.remove(chamada.serverId)
+                                        else selecionados.add(chamada.serverId)
+                                    } else onAbrirChamada(chamada.serverId)
                                 },
                                 onLongClick = {
-                                    if (!isSelecionado) selecionados.add(chamada.id)
+                                    if (!isSelecionado) selecionados.add(chamada.serverId)
                                 }
                             ),
                         colors = CardDefaults.cardColors(
