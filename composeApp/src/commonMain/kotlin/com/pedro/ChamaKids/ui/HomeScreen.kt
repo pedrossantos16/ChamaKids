@@ -28,7 +28,7 @@ import kotlin.math.sin
 import com.pedro.ChamaKids.UpdateChecker
 import com.pedro.ChamaKids.UpdateInfo
 import com.pedro.ChamaKids.ApkInstaller
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
@@ -40,17 +40,41 @@ fun HomeScreen(
     val isBlocked by userViewModel.isBlocked.collectAsState()
     val usuarios by userViewModel.usuarios.collectAsState()
 
-    val scope = rememberCoroutineScope()
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
     var downloadProgress by remember { mutableStateOf<Float?>(null) }
+    var updateError by remember { mutableStateOf<String?>(null) }
 
     // Check for updates
     LaunchedEffect(Unit) {
-        val currentVersionCode = 2 
-        val update = UpdateChecker.checkUpdate(currentVersionCode)
-        if (update != null) {
-            updateInfo = update
+        try {
+            val currentVersionCode = 2 
+            val update = UpdateChecker.checkUpdate(currentVersionCode)
+            if (update != null) {
+                updateInfo = update
+            }
+        } catch (e: Exception) {
+            updateError = e.message ?: "Erro ao verificar atualização"
         }
+    }
+
+    // Monitor de Progresso Real
+    LaunchedEffect(downloadProgress) {
+        if (downloadProgress != null && downloadProgress!! < 1f) {
+            while (downloadProgress != null && downloadProgress!! < 1f) {
+                delay(500)
+                val p = ApkInstaller.getDownloadProgress()
+                if (p >= 0) downloadProgress = p
+            }
+        }
+    }
+
+    // Callback para fechar janela quando download terminar
+    DisposableEffect(Unit) {
+        ApkInstaller.setOnCompleteCallback { 
+            updateInfo = null
+            downloadProgress = null
+        }
+        onDispose { }
     }
 
     Box(
@@ -213,6 +237,19 @@ fun HomeScreen(
             SecurityOverlay(viewModel = userViewModel)
         }
 
+        // Rastreador de Erros
+        if (updateError != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 100.dp)
+                    .background(Color.Red.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                    .padding(8.dp)
+            ) {
+                Text(text = "Erro Update: $updateError", color = Color.White, fontSize = 12.sp)
+            }
+        }
+
         // Diálogo de Atualização
         if (updateInfo != null) {
             AlertDialog(
@@ -227,9 +264,11 @@ fun HomeScreen(
                         
                         if (downloadProgress != null) {
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("Baixando: ${(downloadProgress!! * 100).toInt()}%")
+                            val progressPercent = (downloadProgress!! * 100).toInt()
+                            val progressText = if (progressPercent >= 99) "Pronto! Abrindo instalador..." else "Baixando: $progressPercent%"
+                            Text(progressText)
                             LinearProgressIndicator(
-                                progress = { downloadProgress!! },
+                                progress = { if (downloadProgress!! >= 0) downloadProgress!! else 0.1f },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -238,16 +277,8 @@ fun HomeScreen(
                 confirmButton = {
                     if (downloadProgress == null) {
                         Button(onClick = {
-                            scope.launch {
-                                val data = UpdateChecker.downloadApk(updateInfo!!.apkUrl) { progress ->
-                                    downloadProgress = progress
-                                }
-                                if (data != null) {
-                                    ApkInstaller.install(data)
-                                    downloadProgress = null
-                                    updateInfo = null
-                                }
-                            }
+                            downloadProgress = 0.01f
+                            ApkInstaller.downloadAndInstall(updateInfo!!.apkUrl)
                         }) {
                             Text("ATUALIZAR AGORA")
                         }

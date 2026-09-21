@@ -1,7 +1,7 @@
 package com.pedro.ChamaKids
 
 import io.ktor.client.*
-import io.ktor.client.call.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -25,19 +25,20 @@ object UpdateChecker {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 60000
+        }
+        followRedirects = true
     }
 
     private const val UPDATE_JSON_URL = "https://raw.githubusercontent.com/pedrossantos16/ChamaKids/master/update.json"
 
     suspend fun checkUpdate(currentVersionCode: Int): UpdateInfo? {
-        return try {
-            val info: UpdateInfo = client.get(UPDATE_JSON_URL).body()
-            if (info.versionCode > currentVersionCode) {
-                info
-            } else {
-                null
-            }
-        } catch (e: Exception) {
+        val responseString: String = client.get(UPDATE_JSON_URL).bodyAsText()
+        val info = Json { ignoreUnknownKeys = true }.decodeFromString<UpdateInfo>(responseString)
+        return if (info.versionCode > currentVersionCode) {
+            info
+        } else {
             null
         }
     }
@@ -45,7 +46,7 @@ object UpdateChecker {
     suspend fun downloadApk(url: String, onProgress: (Float) -> Unit): ByteArray? {
         return try {
             val response = client.get(url)
-            val contentLength = response.contentLength() ?: -1L
+            val contentLength = response.headers[HttpHeaders.ContentLength]?.toLong() ?: -1L
             val channel: ByteReadChannel = response.bodyAsChannel()
             val buffer = ByteArray(1024 * 8)
             val output = BytePacketBuilder()
@@ -53,7 +54,7 @@ object UpdateChecker {
 
             while (!channel.isClosedForRead) {
                 val read = channel.readAvailable(buffer)
-                if (read == -1) break
+                if (read <= 0) break
                 output.writeFully(buffer, 0, read)
                 totalRead += read
                 if (contentLength > 0) {

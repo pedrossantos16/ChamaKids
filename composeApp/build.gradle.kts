@@ -10,6 +10,7 @@ plugins {
     // Removed Room plugin due to space-in-path KSP issue. 
     // Room will still work via KSP dependencies below.
     alias(libs.plugins.google.services)
+    alias(libs.plugins.kotlinx.serialization)
 }
 
 kotlin {
@@ -57,6 +58,8 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
             implementation("io.ktor:ktor-client-okhttp:2.3.12")
+            // Necessário para baixar arquivos em background de forma robusta
+            implementation("io.ktor:ktor-client-android:2.3.12")
         }
     }
 
