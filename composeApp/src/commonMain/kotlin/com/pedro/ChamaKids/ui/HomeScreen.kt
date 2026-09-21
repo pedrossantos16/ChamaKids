@@ -46,7 +46,7 @@ fun HomeScreen(
 
     // Check for updates
     LaunchedEffect(Unit) {
-        val currentVersionCode = 1 
+        val currentVersionCode = 2 
         val update = UpdateChecker.checkUpdate(currentVersionCode)
         if (update != null) {
             updateInfo = update
