@@ -2,5 +2,6 @@
 <paths>
     <cache-path name="my_cache" path="." />
     <external-path name="my_downloads" path="Download" />
+    <external-files-path name="external_files" path="." />
     <files-path name="my_images" path="fotos_membros" />
 </paths>

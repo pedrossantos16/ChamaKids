@@ -43,14 +43,7 @@ actual object ApkInstaller {
                     onDownloadCompleteCallback?.invoke()
                     
                     val apkFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "chamakids_update.apk")
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile)
-                    
-                    val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "application/vnd.android.package-archive")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(installIntent)
+                    triggerInstall(context, apkFile)
                     context.unregisterReceiver(this)
                 }
             }
@@ -61,6 +54,36 @@ actual object ApkInstaller {
         } else {
             ctx.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
         }
+    }
+
+    private fun triggerInstall(context: Context, apkFile: File) {
+        if (!apkFile.exists()) return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!context.packageManager.canRequestPackageInstalls()) {
+                val manageIntent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(manageIntent)
+                return
+            }
+        }
+
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile)
+        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        val resInfoList = context.packageManager.queryIntentActivities(installIntent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+        for (resolveInfo in resInfoList) {
+            val packageName = resolveInfo.activityInfo.packageName
+            context.grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        context.startActivity(installIntent)
     }
 
     actual fun setOnCompleteCallback(callback: () -> Unit) {
