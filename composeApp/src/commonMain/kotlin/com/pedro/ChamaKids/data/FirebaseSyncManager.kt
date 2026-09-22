@@ -284,21 +284,62 @@ object FirebaseSyncManager {
         }
     }
     
+    suspend fun deleteUser(serverId: String) {
+        try {
+            firestore.collection("users").document(serverId).delete()
+        } catch (e: Exception) {
+            _errorMessage.value = "Erro ao excluir usuário: ${e.message}"
+        }
+    }
+
     suspend fun factoryReset(database: ChamaKidsDatabase) {
         try {
-            val collections = listOf("members", "attendances", "stars", "users")
-            collections.forEach { coll ->
-                val snapshot = firestore.collection(coll).get()
-                snapshot.documents.forEach { doc ->
-                    if (coll == "users") {
-                        val uData = doc.data(UserDoc.serializer())
-                        if (uData.nome == "ADMINISTRADOR") return@forEach // Preserva o Admin
-                    }
-                    firestore.collection(coll).document(doc.id).delete()
+            // 1. Limpa Firestore Cloud
+            try {
+                val membersSnapshot = firestore.collection("members").get()
+                membersSnapshot.documents.forEach { doc ->
+                    firestore.collection("members").document(doc.id).delete()
                 }
-            }
-            // Limpa local
-            database.memberDao().buscarTodos().forEach { database.memberDao().inativar(it.serverId) }
+            } catch (_: Exception) {}
+
+            try {
+                val attSnapshot = firestore.collection("attendances").get()
+                attSnapshot.documents.forEach { doc ->
+                    try {
+                        val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
+                        recSnapshot.documents.forEach { rDoc ->
+                            firestore.collection("attendances").document(doc.id).collection("records").document(rDoc.id).delete()
+                        }
+                    } catch (_: Exception) {}
+                    firestore.collection("attendances").document(doc.id).delete()
+                }
+            } catch (_: Exception) {}
+
+            try {
+                val starSnapshot = firestore.collection("stars").get()
+                starSnapshot.documents.forEach { doc ->
+                    firestore.collection("stars").document(doc.id).delete()
+                }
+            } catch (_: Exception) {}
+
+            try {
+                val userSnapshot = firestore.collection("users").get()
+                userSnapshot.documents.forEach { doc ->
+                    firestore.collection("users").document(doc.id).delete()
+                }
+            } catch (_: Exception) {}
+
+            try {
+                setFrozen(false)
+            } catch (_: Exception) {}
+
+            // 2. Limpa banco de dados local (Room)
+            database.userDao().limparTodos()
+            database.memberDao().limparTodos()
+            database.attendanceDao().limparTodasChamadas()
+            database.attendanceDao().limparTodosRegistros()
+            database.starDao().limparTodasEstrelas()
+            database.securityDao().limparTudo()
         } catch (_: Exception) { }
     }
 }

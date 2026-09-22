@@ -68,6 +68,12 @@ interface AttendanceDao {
     
     @Query("SELECT * FROM attendance_records")
     suspend fun buscarTodosRegistros(): List<AttendanceRecordEntity>
+
+    @Query("DELETE FROM attendances")
+    suspend fun limparTodasChamadas()
+
+    @Query("DELETE FROM attendance_records")
+    suspend fun limparTodosRegistros()
 }
 
 data class MemberWithStats(

@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pedro.ChamaKids.AppVersion
+import com.pedro.ChamaKids.data.UserEntity
 
 @Composable
 fun SoftwareScreen(
@@ -27,6 +29,7 @@ fun SoftwareScreen(
     val isFrozen by viewModel.isFrozen.collectAsState()
     val usuarios by viewModel.usuarios.collectAsState()
     var showResetConfirm by remember { mutableStateOf(false) }
+    var userToDelete by remember { mutableStateOf<UserEntity?>(null) }
 
     ChamaKidsScreen(
         titulo = "SOFTWARE",
@@ -49,7 +52,7 @@ fun SoftwareScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("SISTEMA OPERACIONAL", color = Color(0xFF00FF41), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Versão: 1.0.2 (Code 3)", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Versão: ${AppVersion.VERSION_NAME} (Code ${AppVersion.VERSION_CODE})", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
                     Text("Status: Online / Sincronizado", color = Color.Gray, fontSize = 12.sp)
                 }
             }
@@ -94,13 +97,23 @@ fun SoftwareScreen(
                                 Text(user.nome, color = Color.White, fontWeight = FontWeight.Bold)
                                 Text(if (user.bloqueado) "BLOQUEADO" else "ATIVO", color = if (user.bloqueado) Color.Red else Color(0xFF00FF41), fontSize = 11.sp)
                             }
-                            Button(
-                                onClick = { viewModel.toggleUserBlock(user) },
-                                colors = ButtonDefaults.buttonColors(containerColor = if (user.bloqueado) Color.DarkGray else Color(0xFFD32F2F)),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(if (user.bloqueado) "DESBLOQUEAR" else "BLOQUEAR", fontSize = 10.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = { viewModel.toggleUserBlock(user) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (user.bloqueado) Color.DarkGray else Color(0xFFD32F2F)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(if (user.bloqueado) "DESBLOQUEAR" else "BLOQUEAR", fontSize = 10.sp)
+                                }
+                                Button(
+                                    onClick = { userToDelete = user },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B0000)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text("EXCLUIR", fontSize = 10.sp, color = Color.White)
+                                }
                             }
                         }
                     }
@@ -125,6 +138,26 @@ fun SoftwareScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 60.dp)
             )
         }
+    }
+
+    if (userToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { userToDelete = null },
+            title = { Text("CONFIRMAR EXCLUSÃO") },
+            text = { Text("Deseja mesmo excluir o usuário '${userToDelete?.nome}'? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        userToDelete?.let { viewModel.excluirUsuario(it) }
+                        userToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) { Text("EXCLUIR") }
+            },
+            dismissButton = {
+                TextButton(onClick = { userToDelete = null }) { Text("CANCELAR") }
+            }
+        )
     }
 
     if (showResetConfirm) {

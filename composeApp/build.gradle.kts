@@ -71,6 +71,10 @@ kotlin {
     }
 }
 
+val appVersionFile = file("src/commonMain/kotlin/com/pedro/ChamaKids/AppVersion.kt").readText()
+val extractedVersionName = Regex("""const val VERSION_NAME = "([^"]+)"""").find(appVersionFile)?.groupValues?.get(1) ?: "1.0.0"
+val extractedVersionCode = Regex("""const val VERSION_CODE = (\d+)""").find(appVersionFile)?.groupValues?.get(1)?.toInt() ?: 1
+
 android {
     namespace = "com.pedro.ChamaKids"
     compileSdk = 35
@@ -79,8 +83,8 @@ android {
         applicationId = "com.pedro.ChamaKids"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = extractedVersionCode
+        versionName = extractedVersionName
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

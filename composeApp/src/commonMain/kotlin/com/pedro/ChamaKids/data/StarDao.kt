@@ -53,6 +53,9 @@ interface StarDao {
         ORDER BY count DESC LIMIT 1
     """)
     suspend fun diaMaisEstrelasNoPeriodo(inicio: Long, fim: Long): PeriodStat?
+
+    @Query("DELETE FROM star_records")
+    suspend fun limparTodasEstrelas()
 }
 
 data class MemberWithStarStats(

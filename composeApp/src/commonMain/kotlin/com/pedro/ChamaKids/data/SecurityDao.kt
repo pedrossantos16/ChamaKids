@@ -12,4 +12,7 @@ interface SecurityDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun salvarEstado(estado: SecurityStateEntity)
+
+    @Query("DELETE FROM security_state")
+    suspend fun limparTudo()
 }

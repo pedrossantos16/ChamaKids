@@ -33,4 +33,7 @@ interface MemberDao {
     
     @Query("SELECT * FROM members")
     suspend fun buscarTodos(): List<MemberEntity>
+
+    @Query("DELETE FROM members")
+    suspend fun limparTodos()
 }

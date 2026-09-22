@@ -165,10 +165,22 @@ class UserViewModel : ViewModel() {
         }
     }
 
+    fun excluirUsuario(user: UserEntity) {
+        viewModelScope.launch {
+            userDao.excluirPorServerId(user.serverId)
+            FirebaseSyncManager.deleteUser(user.serverId)
+            if (_currentUser.value?.serverId == user.serverId) {
+                _currentUser.value = null
+            }
+        }
+    }
+
     fun factoryReset() {
         viewModelScope.launch {
             FirebaseSyncManager.factoryReset(database)
             _currentUser.value = null
+            _isBlocked.value = false
+            _securityState.value = null
         }
     }
 

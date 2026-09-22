@@ -32,6 +32,8 @@ import com.pedro.ChamaKids.ApkInstaller
 import kotlinx.coroutines.delay
 import com.pedro.ChamaKids.data.FirebaseSyncManager
 
+import com.pedro.ChamaKids.AppVersion
+
 @Composable
 fun HomeScreen(
     onMenuClick: () -> Unit,
@@ -54,7 +56,7 @@ fun HomeScreen(
     // Check for updates
     LaunchedEffect(Unit) {
         try {
-            val currentVersionCode = 4
+            val currentVersionCode = AppVersion.VERSION_CODE
             val update = UpdateChecker.checkUpdate(currentVersionCode)
             if (update != null) {
                 updateInfo = update

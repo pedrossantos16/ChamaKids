@@ -22,4 +22,7 @@ interface UserDao {
     
     @Query("SELECT * FROM users")
     suspend fun todosUsuarios(): List<UserEntity>
+
+    @Query("DELETE FROM users")
+    suspend fun limparTodos()
 }

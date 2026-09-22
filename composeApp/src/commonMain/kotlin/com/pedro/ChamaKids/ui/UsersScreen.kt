@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pedro.ChamaKids.data.UserEntity
 import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
 import com.pedro.ChamaKids.ui.theme.ChamaKidsCard
 
@@ -25,6 +26,7 @@ fun UsersScreen(
 ) {
     var nome by remember { mutableStateOf("") }
     var fraseSecreta by remember { mutableStateOf("") }
+    var userToDelete by remember { mutableStateOf<UserEntity?>(null) }
     
     val usuarios by viewModel.usuarios.collectAsState()
 
@@ -98,7 +100,21 @@ fun UsersScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(text = user.nome, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Text(text = "Frase: ****", fontSize = 14.sp, color = Color.Gray)
+                                Text(
+                                    text = if (user.bloqueado) "Status: BLOQUEADO" else "Frase: ****",
+                                    fontSize = 14.sp,
+                                    color = if (user.bloqueado) Color.Red else Color.Gray
+                                )
+                            }
+                            if (user.nome != "ADMINISTRADOR") {
+                                Button(
+                                    onClick = { userToDelete = user },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text("EXCLUIR", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -107,5 +123,25 @@ fun UsersScreen(
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
+    }
+
+    if (userToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { userToDelete = null },
+            title = { Text("EXCLUIR USUÁRIO") },
+            text = { Text("Tem certeza que deseja excluir o usuário '${userToDelete?.nome}'?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        userToDelete?.let { viewModel.excluirUsuario(it) }
+                        userToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) { Text("EXCLUIR") }
+            },
+            dismissButton = {
+                TextButton(onClick = { userToDelete = null }) { Text("CANCELAR") }
+            }
+        )
     }
 }
