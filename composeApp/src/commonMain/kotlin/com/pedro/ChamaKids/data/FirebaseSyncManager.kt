@@ -64,6 +64,15 @@ private data class AppConfigDoc(
     val isFrozen: Boolean = false
 )
 
+@Serializable
+private data class ActionLogDoc(
+    val usuarioNome: String = "",
+    val tipoAcao: String = "",
+    val descricao: String = "",
+    val dataHora: Long = 0,
+    val lastUpdated: Long = 0
+)
+
 object FirebaseSyncManager {
     private val firestore by lazy { Firebase.firestore }
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -141,6 +150,15 @@ object FirebaseSyncManager {
             firestore.collection("stars").document(star.serverId).set(StarDoc.serializer(), sDoc)
         } catch (e: Exception) {
             _errorMessage.value = "Erro estrela: ${e.message}"
+        }
+    }
+
+    suspend fun syncActionLog(log: ActionLogEntity) {
+        try {
+            val doc = ActionLogDoc(log.usuarioNome, log.tipoAcao, log.descricao, log.dataHora, log.lastUpdated)
+            firestore.collection("action_logs").document(log.serverId).set(ActionLogDoc.serializer(), doc)
+        } catch (e: Exception) {
+            _errorMessage.value = "Erro log ação: ${e.message}"
         }
     }
 
@@ -306,6 +324,34 @@ object FirebaseSyncManager {
                 }
             } catch (e: Exception) { _errorMessage.value = "Sinc estrelas: ${e.message}" }
         }
+
+        // Monitor de Log de Ações
+        scope.launch {
+            try {
+                firestore.collection("action_logs").snapshots().collect { snapshot ->
+                    val remoteIds = snapshot.documents.map { it.id }.toSet()
+                    snapshot.documents.forEach { doc ->
+                        try {
+                            val data = doc.data(ActionLogDoc.serializer())
+                            val log = ActionLogEntity(
+                                serverId = doc.id,
+                                usuarioNome = data.usuarioNome,
+                                tipoAcao = data.tipoAcao,
+                                descricao = data.descricao,
+                                dataHora = data.dataHora,
+                                lastUpdated = data.lastUpdated
+                            )
+                            database.actionLogDao().inserir(log)
+                        } catch (_: Exception) {}
+                    }
+                    database.actionLogDao().buscarTodasAcoes().forEach { local ->
+                        if (local.serverId !in remoteIds) {
+                            database.actionLogDao().excluirPorServerId(local.serverId)
+                        }
+                    }
+                }
+            } catch (e: Exception) { _errorMessage.value = "Sinc ações: ${e.message}" }
+        }
     }
     
     suspend fun deleteUser(serverId: String) {
@@ -325,6 +371,7 @@ object FirebaseSyncManager {
             database.attendanceDao().limparTodosRegistros()
             database.starDao().limparTodasEstrelas()
             database.securityDao().limparTudo()
+            database.actionLogDao().limparTudo()
         } catch (_: Exception) {}
 
         // 2. Descongela aplicativo se estivesse congelado
@@ -333,7 +380,7 @@ object FirebaseSyncManager {
         } catch (_: Exception) {}
 
         // 3. Limpa Firestore Cloud em segundo plano
-        val collections = listOf("members", "attendances", "stars", "users")
+        val collections = listOf("members", "attendances", "stars", "users", "action_logs")
         collections.forEach { coll ->
             try {
                 val snapshot = firestore.collection(coll).get()

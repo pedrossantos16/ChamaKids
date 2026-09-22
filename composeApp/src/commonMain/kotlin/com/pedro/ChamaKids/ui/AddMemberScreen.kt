@@ -29,8 +29,10 @@ import kotlinx.datetime.LocalDate
 @Composable
 fun AddMemberScreen(
     onVoltar: () -> Unit,
-    viewModel: MemberViewModel
+    viewModel: MemberViewModel,
+    userViewModel: UserViewModel
 ) {
+    val currentUser by userViewModel.currentUser.collectAsState()
     var nome by remember { mutableStateOf("") }
     var cpf by remember { mutableStateOf("") }
     var rg by remember { mutableStateOf("") }
@@ -239,7 +241,9 @@ fun AddMemberScreen(
                             nomeMae = nomeMae,
                             celularMae = celularMae,
                             fotoUri = fotoUri,
-                            ativo = true
+                            ativo = true,
+                            criadoPor = currentUser?.nome,
+                            ultimaAlteracaoPor = currentUser?.nome
                         )
                         viewModel.adicionarMembro(membro = novoMembro) { onVoltar() }
                     }

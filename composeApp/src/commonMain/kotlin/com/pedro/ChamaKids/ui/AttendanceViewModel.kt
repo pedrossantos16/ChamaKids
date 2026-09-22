@@ -24,6 +24,12 @@ class AttendanceViewModel : ViewModel() {
         initialValue = emptyList()
     )
 
+    val acoes = database.actionLogDao().observarAcoes().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
+
     fun salvarChamada(nome: String?, presencas: Map<String, Boolean>, criadoPor: String?, onSucesso: () -> Unit = {}) {
         viewModelScope.launch {
             val timestamp = Clock.System.now().toEpochMilliseconds()
@@ -43,6 +49,13 @@ class AttendanceViewModel : ViewModel() {
                 )
             }
             repository.salvarChamada(chamada, registros)
+            val totalPresentes = presencas.count { it.value }
+            val nomeChamada = if (!nome.isNullOrBlank()) "'$nome'" else "Sem título"
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Chamada Realizada",
+                descricao = "Realizou a chamada $nomeChamada com $totalPresentes presente(s)",
+                usuarioNome = criadoPor
+            )
             onSucesso()
         }
     }
@@ -76,6 +89,12 @@ class AttendanceViewModel : ViewModel() {
     fun excluirChamadas(ids: List<String>) {
         viewModelScope.launch {
             repository.excluirChamadas(ids)
+        }
+    }
+
+    fun excluirAcoes(ids: List<String>) {
+        viewModelScope.launch {
+            database.actionLogDao().excluirAcoes(ids)
         }
     }
 

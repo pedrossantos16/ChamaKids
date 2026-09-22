@@ -138,6 +138,12 @@ class UserViewModel : ViewModel() {
             )
             userDao.inserir(user)
             FirebaseSyncManager.syncUser(user)
+            val autor = _currentUser.value?.nome ?: nome
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Usuário Cadastrado",
+                descricao = "Cadastrou o usuário '$nome'",
+                usuarioNome = autor
+            )
             _currentUser.value = user
         }
     }
@@ -151,6 +157,11 @@ class UserViewModel : ViewModel() {
             )
             userDao.inserir(updated)
             FirebaseSyncManager.syncUser(updated)
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Usuário Editado",
+                descricao = "Atualizou o perfil do usuário '$novoNome'",
+                usuarioNome = _currentUser.value?.nome ?: novoNome
+            )
             if (_currentUser.value?.serverId == user.serverId) {
                 _currentUser.value = updated
             }
@@ -178,6 +189,12 @@ class UserViewModel : ViewModel() {
             val updated = user.copy(bloqueado = !user.bloqueado)
             userDao.inserir(updated)
             FirebaseSyncManager.syncUser(updated)
+            val acaoTexto = if (updated.bloqueado) "Bloqueou" else "Desbloqueou"
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Bloqueio de Usuário",
+                descricao = "$acaoTexto o acesso do usuário '${user.nome}'",
+                usuarioNome = _currentUser.value?.nome
+            )
         }
     }
 
@@ -185,6 +202,11 @@ class UserViewModel : ViewModel() {
         viewModelScope.launch {
             userDao.excluirPorServerId(user.serverId)
             FirebaseSyncManager.deleteUser(user.serverId)
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Usuário Excluído",
+                descricao = "Excluiu o usuário '${user.nome}'",
+                usuarioNome = _currentUser.value?.nome
+            )
             if (_currentUser.value?.serverId == user.serverId) {
                 _currentUser.value = null
             }

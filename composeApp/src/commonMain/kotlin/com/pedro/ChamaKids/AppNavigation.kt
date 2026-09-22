@@ -101,7 +101,8 @@ fun AppNavigation() {
         composable("adicionar_membro") {
             AddMemberScreen(
                 onVoltar = { navController.popBackStack() },
-                viewModel = memberViewModel
+                viewModel = memberViewModel,
+                userViewModel = userViewModel
             )
         }
 
@@ -112,6 +113,7 @@ fun AppNavigation() {
             MemberDetailScreen(
                 serverId = membroId,
                 viewModel = memberViewModel,
+                userViewModel = userViewModel,
                 onVoltar = { navController.popBackStack() }
             )
         }

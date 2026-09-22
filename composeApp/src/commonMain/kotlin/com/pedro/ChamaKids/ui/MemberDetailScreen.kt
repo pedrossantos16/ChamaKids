@@ -25,8 +25,10 @@ import com.pedro.ChamaKids.ui.theme.ChamaKidsCard
 fun MemberDetailScreen(
     serverId: String,
     viewModel: MemberViewModel,
+    userViewModel: UserViewModel,
     onVoltar: () -> Unit
 ) {
+    val currentUser by userViewModel.currentUser.collectAsState()
     fun formatarDataBR(data: String?): String {
         if (data.isNullOrBlank()) return "Não informada"
         return if (data.contains("-")) {
@@ -234,7 +236,7 @@ fun MemberDetailScreen(
             if (!editando) {
                 Button(onClick = { editando = true }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black), border = BorderStroke(1.5.dp, Color.Black)) { Text("EDITAR") }
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = { viewModel.inativarMembro(serverId); onVoltar() }, modifier = Modifier.fillMaxWidth().padding(bottom = 45.dp).height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White), border = BorderStroke(1.5.dp, Color.Black)) { Text("EXCLUIR") }
+                Button(onClick = { viewModel.inativarMembro(serverId, executadoPor = currentUser?.nome); onVoltar() }, modifier = Modifier.fillMaxWidth().padding(bottom = 45.dp).height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White), border = BorderStroke(1.5.dp, Color.Black)) { Text("EXCLUIR") }
             } else {
                 Button(onClick = {
                     val dataIso = if (dataNascimento.contains("/")) {
@@ -244,7 +246,21 @@ fun MemberDetailScreen(
                         } catch (e: Exception) { dataNascimento }
                     } else dataNascimento
 
-                    val atualizado = membroOriginal!!.copy(nome = nome.trim(), cpf = cpf, rg = rg, dataNascimento = dataIso.ifBlank { null }, endereco = endereco, celularMembro = celularMembro, telefone = telefone, nomePai = nomePai, celularPai = celularPai, nomeMae = nomeMae, celularMae = celularMae, fotoUri = fotoUri)
+                    val atualizado = membroOriginal!!.copy(
+                        nome = nome.trim(),
+                        cpf = cpf,
+                        rg = rg,
+                        dataNascimento = dataIso.ifBlank { null },
+                        endereco = endereco,
+                        celularMembro = celularMembro,
+                        telefone = telefone,
+                        nomePai = nomePai,
+                        celularPai = celularPai,
+                        nomeMae = nomeMae,
+                        celularMae = celularMae,
+                        fotoUri = fotoUri,
+                        ultimaAlteracaoPor = currentUser?.nome
+                    )
                     
                     if (membroOriginal?.fotoUri != null && membroOriginal?.fotoUri != fotoUri) {
                         FileUtils.excluirArquivo(membroOriginal?.fotoUri)

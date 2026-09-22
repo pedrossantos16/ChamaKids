@@ -34,6 +34,11 @@ class MemberViewModel : ViewModel() {
     fun adicionarMembro(membro: MemberEntity, onSucesso: () -> Unit = {}) {
         viewModelScope.launch {
             repository.adicionar(membro)
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Membro Adicionado",
+                descricao = "Cadastrou o membro '${membro.nome}'",
+                usuarioNome = membro.criadoPor
+            )
             onSucesso()
         }
     }
@@ -41,12 +46,24 @@ class MemberViewModel : ViewModel() {
     fun atualizarMembro(membro: MemberEntity) {
         viewModelScope.launch {
             repository.atualizar(membro)
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Membro Editado",
+                descricao = "Atualizou os dados do membro '${membro.nome}'",
+                usuarioNome = membro.ultimaAlteracaoPor
+            )
         }
     }
 
-    fun inativarMembro(serverId: String) {
+    fun inativarMembro(serverId: String, executadoPor: String? = null) {
         viewModelScope.launch {
+            val m = repository.buscarPorId(serverId)
             repository.inativar(serverId)
+            val autor = executadoPor ?: m?.ultimaAlteracaoPor ?: m?.criadoPor
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Membro Inativado",
+                descricao = "Inativou o membro '${m?.nome ?: "Desconhecido"}'",
+                usuarioNome = autor
+            )
         }
     }
 
@@ -62,6 +79,7 @@ class MemberViewModel : ViewModel() {
 
     fun darEstrela(memberId: String, comentario: String?, criadoPor: String?, onSucesso: () -> Unit) {
         viewModelScope.launch {
+            val m = repository.buscarPorId(memberId)
             val star = StarRecordEntity(
                 serverId = com.pedro.ChamaKids.IdGenerator.generate(),
                 memberId = memberId,
@@ -70,6 +88,12 @@ class MemberViewModel : ViewModel() {
                 criadoPor = criadoPor
             )
             repository.darEstrela(star)
+            val infoComentario = if (!comentario.isNullOrBlank()) " ($comentario)" else ""
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Estrela Atribuída",
+                descricao = "Atribuiu estrela para '${m?.nome ?: "Membro"}'$infoComentario",
+                usuarioNome = criadoPor
+            )
             onSucesso()
         }
     }
