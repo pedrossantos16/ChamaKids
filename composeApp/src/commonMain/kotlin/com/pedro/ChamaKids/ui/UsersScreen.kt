@@ -26,9 +26,10 @@ fun UsersScreen(
 ) {
     var nome by remember { mutableStateOf("") }
     var fraseSecreta by remember { mutableStateOf("") }
-    var userToDelete by remember { mutableStateOf<UserEntity?>(null) }
+    var userToEdit by remember { mutableStateOf<UserEntity?>(null) }
     
     val usuarios by viewModel.usuarios.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
 
     ChamaKidsScreen(
         titulo = "USUÁRIOS",
@@ -86,6 +87,7 @@ fun UsersScreen(
                 )
 
                 usuarios.forEach { user ->
+                    val isOwnUser = currentUser != null && (user.serverId == currentUser?.serverId || user.nome == currentUser?.nome)
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -106,14 +108,15 @@ fun UsersScreen(
                                     color = if (user.bloqueado) Color.Red else Color.Gray
                                 )
                             }
-                            if (user.nome != "ADMINISTRADOR") {
+                            if (isOwnUser) {
                                 Button(
-                                    onClick = { userToDelete = user },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                    shape = RoundedCornerShape(6.dp)
+                                    onClick = { userToEdit = user },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ChamaKidsAction),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(6.dp),
+                                    border = BorderStroke(1.dp, Color.Black)
                                 ) {
-                                    Text("EXCLUIR", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text("EDITAR", fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -125,22 +128,51 @@ fun UsersScreen(
         }
     }
 
-    if (userToDelete != null) {
+    if (userToEdit != null) {
+        var editNome by remember(userToEdit) { mutableStateOf(userToEdit?.nome ?: "") }
+        var editFrase by remember(userToEdit) { mutableStateOf(userToEdit?.fraseSecreta ?: "") }
+
         AlertDialog(
-            onDismissRequest = { userToDelete = null },
-            title = { Text("EXCLUIR USUÁRIO") },
-            text = { Text("Tem certeza que deseja excluir o usuário '${userToDelete?.nome}'?") },
+            onDismissRequest = { userToEdit = null },
+            title = { Text("EDITAR USUÁRIO", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = editNome,
+                        onValueChange = { editNome = it },
+                        label = { Text("Nome do usuário") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = editFrase,
+                        onValueChange = { editFrase = it },
+                        label = { Text("Palavra/Frase Chave") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
-                        userToDelete?.let { viewModel.excluirUsuario(it) }
-                        userToDelete = null
+                        if (editNome.isNotBlank() && editFrase.isNotBlank()) {
+                            userToEdit?.let { u ->
+                                viewModel.editarUsuario(u, editNome, editFrase)
+                            }
+                            userToEdit = null
+                        }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                ) { Text("EXCLUIR") }
+                    colors = ButtonDefaults.buttonColors(containerColor = ChamaKidsAction, contentColor = Color.Black)
+                ) {
+                    Text("SALVAR", fontWeight = FontWeight.Bold)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { userToDelete = null }) { Text("CANCELAR") }
+                TextButton(onClick = { userToEdit = null }) {
+                    Text("CANCELAR")
+                }
             }
         )
     }

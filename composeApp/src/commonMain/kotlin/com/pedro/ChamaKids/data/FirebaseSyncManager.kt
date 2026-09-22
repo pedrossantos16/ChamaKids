@@ -171,6 +171,7 @@ object FirebaseSyncManager {
         scope.launch {
             try {
                 firestore.collection("users").snapshots().collect { snapshot ->
+                    val remoteIds = snapshot.documents.map { it.id }.toSet()
                     snapshot.documents.forEach { doc ->
                         try {
                             val data = doc.data(UserDoc.serializer())
@@ -184,6 +185,11 @@ object FirebaseSyncManager {
                             database.userDao().inserir(user)
                         } catch (_: Exception) {}
                     }
+                    database.userDao().todosUsuarios().forEach { local ->
+                        if (local.serverId !in remoteIds) {
+                            database.userDao().excluirPorServerId(local.serverId)
+                        }
+                    }
                 }
             } catch (e: Exception) { _errorMessage.value = "Sinc usuários: ${e.message}" }
         }
@@ -193,6 +199,7 @@ object FirebaseSyncManager {
             try {
                 firestore.collection("members").snapshots().collect { snapshot ->
                     _syncing.value = true
+                    val remoteIds = snapshot.documents.map { it.id }.toSet()
                     snapshot.documents.forEach { doc ->
                         try {
                             val data = doc.data(MemberDoc.serializer())
@@ -218,6 +225,11 @@ object FirebaseSyncManager {
                             database.memberDao().inserir(member)
                         } catch (_: Exception) {}
                     }
+                    database.memberDao().buscarTodos().forEach { local ->
+                        if (local.serverId !in remoteIds) {
+                            database.memberDao().excluirPorServerId(local.serverId)
+                        }
+                    }
                     _syncing.value = false
                 }
             } catch (e: Exception) { _errorMessage.value = "Sinc membros: ${e.message}" }
@@ -227,6 +239,7 @@ object FirebaseSyncManager {
         scope.launch {
             try {
                 firestore.collection("attendances").snapshots().collect { snapshot ->
+                    val remoteIds = snapshot.documents.map { it.id }.toSet()
                     snapshot.documents.forEach { doc ->
                         try {
                             val data = doc.data(AttendanceDoc.serializer())
@@ -257,6 +270,11 @@ object FirebaseSyncManager {
                             }
                         } catch (_: Exception) {}
                     }
+                    database.attendanceDao().buscarTodasChamadas().forEach { local ->
+                        if (local.serverId !in remoteIds) {
+                            database.attendanceDao().excluirChamadas(listOf(local.serverId))
+                        }
+                    }
                 }
             } catch (e: Exception) { _errorMessage.value = "Sinc chamadas: ${e.message}" }
         }
@@ -265,6 +283,7 @@ object FirebaseSyncManager {
         scope.launch {
             try {
                 firestore.collection("stars").snapshots().collect { snapshot ->
+                    val remoteIds = snapshot.documents.map { it.id }.toSet()
                     snapshot.documents.forEach { doc ->
                         try {
                             val data = doc.data(StarDoc.serializer())
@@ -278,6 +297,11 @@ object FirebaseSyncManager {
                             )
                             database.starDao().inserirEstrela(star)
                         } catch (_: Exception) {}
+                    }
+                    database.starDao().buscarTodasEstrelas().forEach { local ->
+                        if (local.serverId !in remoteIds) {
+                            database.starDao().excluirPorServerId(local.serverId)
+                        }
                     }
                 }
             } catch (e: Exception) { _errorMessage.value = "Sinc estrelas: ${e.message}" }
@@ -293,53 +317,38 @@ object FirebaseSyncManager {
     }
 
     suspend fun factoryReset(database: ChamaKidsDatabase) {
+        // 1. Limpa banco de dados local (Room) IMEDIATAMENTE
         try {
-            // 1. Limpa Firestore Cloud
-            try {
-                val membersSnapshot = firestore.collection("members").get()
-                membersSnapshot.documents.forEach { doc ->
-                    firestore.collection("members").document(doc.id).delete()
-                }
-            } catch (_: Exception) {}
-
-            try {
-                val attSnapshot = firestore.collection("attendances").get()
-                attSnapshot.documents.forEach { doc ->
-                    try {
-                        val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
-                        recSnapshot.documents.forEach { rDoc ->
-                            firestore.collection("attendances").document(doc.id).collection("records").document(rDoc.id).delete()
-                        }
-                    } catch (_: Exception) {}
-                    firestore.collection("attendances").document(doc.id).delete()
-                }
-            } catch (_: Exception) {}
-
-            try {
-                val starSnapshot = firestore.collection("stars").get()
-                starSnapshot.documents.forEach { doc ->
-                    firestore.collection("stars").document(doc.id).delete()
-                }
-            } catch (_: Exception) {}
-
-            try {
-                val userSnapshot = firestore.collection("users").get()
-                userSnapshot.documents.forEach { doc ->
-                    firestore.collection("users").document(doc.id).delete()
-                }
-            } catch (_: Exception) {}
-
-            try {
-                setFrozen(false)
-            } catch (_: Exception) {}
-
-            // 2. Limpa banco de dados local (Room)
             database.userDao().limparTodos()
             database.memberDao().limparTodos()
             database.attendanceDao().limparTodasChamadas()
             database.attendanceDao().limparTodosRegistros()
             database.starDao().limparTodasEstrelas()
             database.securityDao().limparTudo()
-        } catch (_: Exception) { }
+        } catch (_: Exception) {}
+
+        // 2. Descongela aplicativo se estivesse congelado
+        try {
+            setFrozen(false)
+        } catch (_: Exception) {}
+
+        // 3. Limpa Firestore Cloud em segundo plano
+        val collections = listOf("members", "attendances", "stars", "users")
+        collections.forEach { coll ->
+            try {
+                val snapshot = firestore.collection(coll).get()
+                snapshot.documents.forEach { doc ->
+                    if (coll == "attendances") {
+                        try {
+                            val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
+                            recSnapshot.documents.forEach { rDoc ->
+                                firestore.collection("attendances").document(doc.id).collection("records").document(rDoc.id).delete()
+                            }
+                        } catch (_: Exception) {}
+                    }
+                    firestore.collection(coll).document(doc.id).delete()
+                }
+            } catch (_: Exception) {}
+        }
     }
 }

@@ -36,4 +36,7 @@ interface MemberDao {
 
     @Query("DELETE FROM members")
     suspend fun limparTodos()
+
+    @Query("DELETE FROM members WHERE serverId = :serverId")
+    suspend fun excluirPorServerId(serverId: String)
 }

@@ -138,6 +138,22 @@ class UserViewModel : ViewModel() {
             )
             userDao.inserir(user)
             FirebaseSyncManager.syncUser(user)
+            _currentUser.value = user
+        }
+    }
+
+    fun editarUsuario(user: UserEntity, novoNome: String, novaFrase: String) {
+        viewModelScope.launch {
+            val updated = user.copy(
+                nome = novoNome,
+                fraseSecreta = novaFrase,
+                lastUpdated = Clock.System.now().toEpochMilliseconds()
+            )
+            userDao.inserir(updated)
+            FirebaseSyncManager.syncUser(updated)
+            if (_currentUser.value?.serverId == user.serverId) {
+                _currentUser.value = updated
+            }
         }
     }
 
