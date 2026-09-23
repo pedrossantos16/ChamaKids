@@ -35,6 +35,9 @@ interface StarDao {
     @Query("SELECT dataHora FROM star_records WHERE memberId = :memberId")
     suspend fun buscarHistoricoEstrelas(memberId: String): List<Long>
 
+    @Query("SELECT * FROM star_records WHERE memberId = :memberId ORDER BY dataHora DESC")
+    suspend fun buscarEstrelasDoMembro(memberId: String): List<StarRecordEntity>
+
     @Query("""
         SELECT m.serverId as id, m.nome, m.fotoUri, COUNT(s.serverId) as count, s.comentario
         FROM members m

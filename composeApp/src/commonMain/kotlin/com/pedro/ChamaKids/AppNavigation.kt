@@ -85,6 +85,7 @@ fun AppNavigation() {
                 membroId = membroId,
                 memberViewModel = memberViewModel,
                 attendanceViewModel = attendanceViewModel,
+                userViewModel = userViewModel,
                 onVoltar = { navController.popBackStack() }
             )
         }

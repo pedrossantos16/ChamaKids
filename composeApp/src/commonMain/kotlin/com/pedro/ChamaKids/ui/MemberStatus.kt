@@ -13,10 +13,12 @@ enum class StatusFrequencia(val label: String, val cor: Color) {
 
     companion object {
         fun aPartirDaPorcentagem(porcentagem: Float?): StatusFrequencia {
+            if (porcentagem == null) return NENHUM
+            // Suporta porcentagem em escala 0.0 .. 1.0 (ex: 1.0f = 100%) ou 0.0 .. 100.0
+            val valor = if (porcentagem in 0.0f..1.0f && porcentagem > 0.0f) porcentagem * 100f else porcentagem
             return when {
-                porcentagem == null -> NENHUM
-                porcentagem >= 75f -> BOM
-                porcentagem >= 50f -> REGULAR
+                valor >= 75f -> BOM
+                valor >= 50f -> REGULAR
                 else -> RUIM
             }
         }

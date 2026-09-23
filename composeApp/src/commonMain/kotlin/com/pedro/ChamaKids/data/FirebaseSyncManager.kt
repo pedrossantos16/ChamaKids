@@ -362,6 +362,14 @@ object FirebaseSyncManager {
         }
     }
 
+    suspend fun deleteStar(serverId: String) {
+        try {
+            firestore.collection("stars").document(serverId).delete()
+        } catch (e: Exception) {
+            _errorMessage.value = "Erro ao excluir estrela: ${e.message}"
+        }
+    }
+
     suspend fun factoryReset(database: ChamaKidsDatabase) {
         // 1. Limpa banco de dados local (Room) IMEDIATAMENTE
         try {

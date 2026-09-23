@@ -22,7 +22,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pedro.ChamaKids.data.MemberEntity
 import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClassifyDetailScreen(
     serverId: String,
@@ -33,6 +38,10 @@ fun ClassifyDetailScreen(
     var membro by remember { mutableStateOf<MemberEntity?>(null) }
     var comentario by remember { mutableStateOf("") }
     val currentUser by userViewModel.currentUser.collectAsState()
+
+    var mostrarCalendario by remember { mutableStateOf(false) }
+    var dataSelecionadaMillis by remember { mutableLongStateOf(Clock.System.now().toEpochMilliseconds()) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dataSelecionadaMillis)
 
     LaunchedEffect(serverId) {
         membro = viewModel.buscarMembroPorId(serverId)
@@ -49,6 +58,9 @@ fun ClassifyDetailScreen(
         } else {
             val m = membro!!
 
+            val zdt = Instant.fromEpochMilliseconds(dataSelecionadaMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+            val dataFormatada = "${zdt.dayOfMonth.toString().padStart(2, '0')}/${zdt.monthNumber.toString().padStart(2, '0')}/${zdt.year}"
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -56,7 +68,7 @@ fun ClassifyDetailScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 Text(
                     text = "${m.nome.split(" ").firstOrNull()?.uppercase()} receberá 1 estrela ★",
@@ -64,11 +76,11 @@ fun ClassifyDetailScreen(
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.Black,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 50.dp)
+                    modifier = Modifier.padding(bottom = 30.dp)
                 )
 
                 Box(
-                    modifier = Modifier.size(300.dp),
+                    modifier = Modifier.size(260.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
@@ -91,7 +103,7 @@ fun ClassifyDetailScreen(
 
                     Box(
                         modifier = Modifier
-                            .size(170.dp)
+                            .size(150.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFD9D9D9))
                             .border(6.dp, Color.White, CircleShape),
@@ -105,7 +117,7 @@ fun ClassifyDetailScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
                     text = m.nome.uppercase(),
@@ -114,7 +126,7 @@ fun ClassifyDetailScreen(
                     color = Color.Black
                 )
 
-                Spacer(modifier = Modifier.height(50.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 OutlinedTextField(
                     value = comentario,
@@ -128,11 +140,27 @@ fun ClassifyDetailScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = { mostrarCalendario = true },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                ) {
+                    Text("📅 Data da Estrela: $dataFormatada", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+
+                Spacer(modifier = Modifier.height(30.dp))
 
                 Button(
                     onClick = { 
-                        viewModel.darEstrela(serverId, comentario, currentUser?.nome) {
+                        viewModel.darEstrela(
+                            memberId = serverId,
+                            comentario = comentario,
+                            criadoPor = currentUser?.nome,
+                            dataHora = dataSelecionadaMillis
+                        ) {
                             onVoltar()
                         }
                     },
@@ -148,5 +176,23 @@ fun ClassifyDetailScreen(
                 }
             }
         }
+    }
+
+    if (mostrarCalendario) {
+        DatePickerDialog(
+            onDismissRequest = { mostrarCalendario = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis
+                    if (millis != null) {
+                        dataSelecionadaMillis = millis
+                    }
+                    mostrarCalendario = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarCalendario = false }) { Text("CANCELAR") }
+            }
+        ) { DatePicker(state = datePickerState) }
     }
 }

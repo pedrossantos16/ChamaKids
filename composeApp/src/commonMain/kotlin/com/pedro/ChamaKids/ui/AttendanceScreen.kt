@@ -18,7 +18,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceScreen(
     onVoltar: () -> Unit,
@@ -37,6 +42,9 @@ fun AttendanceScreen(
 
     var mostrarDialogNome by remember { mutableStateOf(false) }
     var nomeChamada by remember { mutableStateOf("") }
+    var mostrarCalendario by remember { mutableStateOf(false) }
+    var dataSelecionadaMillis by remember { mutableLongStateOf(Clock.System.now().toEpochMilliseconds()) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dataSelecionadaMillis)
 
     LaunchedEffect(membrosBanco) {
         presencas = membrosBanco.associate { membro ->
@@ -150,30 +158,48 @@ fun AttendanceScreen(
     }
 
     if (mostrarDialogNome) {
+        val zdt = Instant.fromEpochMilliseconds(dataSelecionadaMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+        val dataFormatada = "${zdt.dayOfMonth.toString().padStart(2, '0')}/${zdt.monthNumber.toString().padStart(2, '0')}/${zdt.year}"
+
         AlertDialog(
             onDismissRequest = { mostrarDialogNome = false },
-            title = { Text("Nome da Chamada") },
+            title = { Text("Salvar Chamada") },
             text = {
-                OutlinedTextField(
-                    value = nomeChamada,
-                    onValueChange = { nomeChamada = it },
-                    label = { Text("Ex: Aula de Domingo") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column {
+                    OutlinedTextField(
+                        value = nomeChamada,
+                        onValueChange = { nomeChamada = it },
+                        label = { Text("Nome da chamada (opcional)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = "Data da Chamada:", fontSize = 12.sp, color = Color.Gray)
+                    OutlinedButton(
+                        onClick = { mostrarCalendario = true },
+                        modifier = Modifier.fillMaxWidth().height(50.dp).padding(top = 4.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("📅 Data: $dataFormatada", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                }
             },
             confirmButton = {
-                Button(onClick = {
-                    attendanceViewModel.salvarChamada(
-                        nome = nomeChamada.ifBlank { null },
-                        presencas = presencas,
-                        criadoPor = currentUser?.nome,
-                        onSucesso = {
-                            onVoltar()
-                        }
-                    )
-                    mostrarDialogNome = false
-                }) {
-                    Text("SALVAR")
+                Button(
+                    onClick = {
+                        attendanceViewModel.salvarChamada(
+                            nome = nomeChamada.ifBlank { null },
+                            presencas = presencas,
+                            criadoPor = currentUser?.nome,
+                            dataHora = dataSelecionadaMillis,
+                            onSucesso = {
+                                onVoltar()
+                            }
+                        )
+                        mostrarDialogNome = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ChamaKidsAction, contentColor = Color.Black)
+                ) {
+                    Text("SALVAR", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -182,5 +208,23 @@ fun AttendanceScreen(
                 }
             }
         )
+    }
+
+    if (mostrarCalendario) {
+        DatePickerDialog(
+            onDismissRequest = { mostrarCalendario = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis
+                    if (millis != null) {
+                        dataSelecionadaMillis = millis
+                    }
+                    mostrarCalendario = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarCalendario = false }) { Text("CANCELAR") }
+            }
+        ) { DatePicker(state = datePickerState) }
     }
 }

@@ -77,13 +77,19 @@ class MemberViewModel : ViewModel() {
         return repository.buscarPorId(serverId)
     }
 
-    fun darEstrela(memberId: String, comentario: String?, criadoPor: String?, onSucesso: () -> Unit) {
+    fun darEstrela(
+        memberId: String,
+        comentario: String?,
+        criadoPor: String?,
+        dataHora: Long = Clock.System.now().toEpochMilliseconds(),
+        onSucesso: () -> Unit
+    ) {
         viewModelScope.launch {
             val m = repository.buscarPorId(memberId)
             val star = StarRecordEntity(
                 serverId = com.pedro.ChamaKids.IdGenerator.generate(),
                 memberId = memberId,
-                dataHora = Clock.System.now().toEpochMilliseconds(),
+                dataHora = dataHora,
                 comentario = comentario,
                 criadoPor = criadoPor
             )
@@ -93,6 +99,24 @@ class MemberViewModel : ViewModel() {
                 tipoAcao = "Estrela Atribuída",
                 descricao = "Atribuiu estrela para '${m?.nome ?: "Membro"}'$infoComentario",
                 usuarioNome = criadoPor
+            )
+            onSucesso()
+        }
+    }
+
+    suspend fun buscarEstrelasDoMembro(memberId: String): List<StarRecordEntity> {
+        return database.starDao().buscarEstrelasDoMembro(memberId)
+    }
+
+    fun excluirEstrela(starId: String, memberId: String, executadoPor: String?, onSucesso: () -> Unit = {}) {
+        viewModelScope.launch {
+            val m = repository.buscarPorId(memberId)
+            database.starDao().excluirPorServerId(starId)
+            com.pedro.ChamaKids.data.FirebaseSyncManager.deleteStar(starId)
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Estrela Removida",
+                descricao = "Removeu 1 estrela do membro '${m?.nome ?: "Membro"}'",
+                usuarioNome = executadoPor
             )
             onSucesso()
         }

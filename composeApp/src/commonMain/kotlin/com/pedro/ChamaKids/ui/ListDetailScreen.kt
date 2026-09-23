@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pedro.ChamaKids.data.MemberAttendanceInfo
 import com.pedro.ChamaKids.data.MemberEntity
+import com.pedro.ChamaKids.data.StarRecordEntity
+import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 
 @Composable
@@ -25,11 +27,16 @@ fun ListDetailScreen(
     membroId: String,
     memberViewModel: MemberViewModel,
     attendanceViewModel: AttendanceViewModel,
+    userViewModel: UserViewModel,
     onVoltar: () -> Unit
 ) {
+    val currentUser by userViewModel.currentUser.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+
     var membro by remember { mutableStateOf<MemberEntity?>(null) }
     var historico by remember { mutableStateOf<List<MemberAttendanceInfo>>(emptyList()) }
     var historicoEstrelas by remember { mutableStateOf<List<Long>>(emptyList()) }
+    var estrelasDetalhadas by remember { mutableStateOf<List<StarRecordEntity>>(emptyList()) }
     var frequencia by remember { mutableStateOf<Float?>(null) }
     
     val hoje = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -42,12 +49,14 @@ fun ListDetailScreen(
     var expandidoGraficoPresencas by remember { mutableStateOf(false) }
     var expandidoCalendarioEstrelas by remember { mutableStateOf(false) }
     var expandidoGraficoEstrelas by remember { mutableStateOf(false) }
+    var expandidoGerenciarEstrelas by remember { mutableStateOf(false) }
 
     LaunchedEffect(membroId) {
         membro = memberViewModel.buscarMembroPorId(membroId)
         historico = attendanceViewModel.buscarHistorico(membroId)
         frequencia = attendanceViewModel.calcularFrequencia(membroId)
         historicoEstrelas = memberViewModel.buscarHistoricoEstrelas(membroId)
+        estrelasDetalhadas = memberViewModel.buscarEstrelasDoMembro(membroId)
     }
 
     val frequenciasMensais = remember(historico, anoSelecionado) {
@@ -160,6 +169,59 @@ fun ListDetailScreen(
                         GraficoLinhasEstrelas(historicoEstrelas = historicoEstrelas, ano = anoSelecionado)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = "Toque em um ponto para ver a quantidade", fontSize = 10.sp, color = Color.Gray)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                SecaoExpansivel(
+                    titulo = "Gerenciar Estrelas (${estrelasDetalhadas.size} ★)",
+                    expandido = expandidoGerenciarEstrelas,
+                    onToggle = { expandidoGerenciarEstrelas = !expandidoGerenciarEstrelas }
+                ) {
+                    if (estrelasDetalhadas.isEmpty()) {
+                        Text(text = "Nenhuma estrela atribuída a este membro.", fontSize = 12.sp, color = Color.Gray)
+                    } else {
+                        Column {
+                            estrelasDetalhadas.forEach { estrela ->
+                                val zdt = Instant.fromEpochMilliseconds(estrela.dataHora).toLocalDateTime(TimeZone.currentSystemDefault())
+                                val dataStr = "${zdt.dayOfMonth.toString().padStart(2, '0')}/${zdt.monthNumber.toString().padStart(2, '0')}/${zdt.year}"
+                                val horaStr = "${zdt.hour.toString().padStart(2, '0')}:${zdt.minute.toString().padStart(2, '0')}"
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("★ 1 Estrela - $dataStr às $horaStr", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        if (!estrela.comentario.isNullOrBlank()) {
+                                            Text("Comentário: ${estrela.comentario}", fontSize = 12.sp, color = Color.DarkGray)
+                                        }
+                                        if (!estrela.criadoPor.isNullOrBlank()) {
+                                            Text("Por: ${estrela.criadoPor}", fontSize = 11.sp, color = Color.Gray)
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            memberViewModel.excluirEstrela(
+                                                starId = estrela.serverId,
+                                                memberId = membroId,
+                                                executadoPor = currentUser?.nome
+                                            ) {
+                                                coroutineScope.launch {
+                                                    estrelasDetalhadas = memberViewModel.buscarEstrelasDoMembro(membroId)
+                                                    historicoEstrelas = memberViewModel.buscarHistoricoEstrelas(membroId)
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Text("🗑️", fontSize = 18.sp)
+                                    }
+                                }
+                                HorizontalDivider(color = Color(0xFFF0F0F0))
+                            }
+                        }
                     }
                 }
                 

@@ -30,14 +30,19 @@ class AttendanceViewModel : ViewModel() {
         initialValue = emptyList()
     )
 
-    fun salvarChamada(nome: String?, presencas: Map<String, Boolean>, criadoPor: String?, onSucesso: () -> Unit = {}) {
+    fun salvarChamada(
+        nome: String?,
+        presencas: Map<String, Boolean>,
+        criadoPor: String?,
+        dataHora: Long = Clock.System.now().toEpochMilliseconds(),
+        onSucesso: () -> Unit = {}
+    ) {
         viewModelScope.launch {
-            val timestamp = Clock.System.now().toEpochMilliseconds()
             val chamadaId = com.pedro.ChamaKids.IdGenerator.generate()
             val chamada = AttendanceEntity(
                 serverId = chamadaId,
                 nome = nome,
-                dataHora = timestamp,
+                dataHora = dataHora,
                 criadoPor = criadoPor
             )
             val registros = presencas.map { (memberId, presente) ->
