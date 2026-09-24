@@ -7,10 +7,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,11 +25,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pedro.ChamaKids.data.ActionLogEntity
+import com.pedro.ChamaKids.data.AttendanceEntity
 import com.pedro.ChamaKids.ui.theme.ChamaKidsAction
 import com.pedro.ChamaKids.ui.theme.ChamaKidsBlue
 import kotlinx.datetime.*
 
-@OptIn(ExperimentalFoundationApi::class)
+private enum class FiltroPeriodo(val label: String) {
+    TODOS("Todos"),
+    HOJE("Hoje"),
+    ULTIMOS_7_DIAS("7 Dias"),
+    ULTIMOS_30_DIAS("30 Dias"),
+    PERSONALIZADO("Personalizado 📅")
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     viewModel: AttendanceViewModel,
@@ -36,6 +46,11 @@ fun HistoryScreen(
     onAbrirChamada: (String) -> Unit
 ) {
     var abaSelecionada by remember { mutableIntStateOf(0) } // 0 = Chamadas, 1 = Ações
+    var filtroSelecionado by remember { mutableStateOf(FiltroPeriodo.TODOS) }
+
+    var dataInicioPersonalizada by remember { mutableStateOf<Long?>(null) }
+    var dataFimPersonalizada by remember { mutableStateOf<Long?>(null) }
+    var mostrarDialogFiltroPersonalizado by remember { mutableStateOf(false) }
 
     val chamadas by viewModel.chamadas.collectAsState()
     val acoes by viewModel.acoes.collectAsState()
@@ -46,6 +61,75 @@ fun HistoryScreen(
     var acaoDetalhe by remember { mutableStateOf<ActionLogEntity?>(null) }
 
     val temSelecao = if (abaSelecionada == 0) selecionadosChamadas.isNotEmpty() else selecionadosAcoes.isNotEmpty()
+
+    // CÁLCULO DO FILTRO DE DATAS (INÍCIO E FIM EM MILLIS)
+    val (dataInicioFiltro, dataFimFiltro) = remember(filtroSelecionado, dataInicioPersonalizada, dataFimPersonalizada) {
+        val hojeLocal = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        
+        when (filtroSelecionado) {
+            FiltroPeriodo.HOJE -> {
+                val i = LocalDateTime(hojeLocal.year, hojeLocal.monthNumber, hojeLocal.dayOfMonth, 0, 0, 0)
+                    .toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                val f = LocalDateTime(hojeLocal.year, hojeLocal.monthNumber, hojeLocal.dayOfMonth, 23, 59, 59)
+                    .toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                i to f
+            }
+            FiltroPeriodo.ULTIMOS_7_DIAS -> {
+                val d7 = hojeLocal.minus(DatePeriod(days = 7))
+                val i = LocalDateTime(d7.year, d7.monthNumber, d7.dayOfMonth, 0, 0, 0)
+                    .toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                val f = LocalDateTime(hojeLocal.year, hojeLocal.monthNumber, hojeLocal.dayOfMonth, 23, 59, 59)
+                    .toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                i to f
+            }
+            FiltroPeriodo.ULTIMOS_30_DIAS -> {
+                val d30 = hojeLocal.minus(DatePeriod(days = 30))
+                val i = LocalDateTime(d30.year, d30.monthNumber, d30.dayOfMonth, 0, 0, 0)
+                    .toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                val f = LocalDateTime(hojeLocal.year, hojeLocal.monthNumber, hojeLocal.dayOfMonth, 23, 59, 59)
+                    .toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                i to f
+            }
+            FiltroPeriodo.PERSONALIZADO -> {
+                dataInicioPersonalizada to dataFimPersonalizada
+            }
+            FiltroPeriodo.TODOS -> null to null
+        }
+    }
+
+    // CHAMADAS FILTRADAS E AGRUPADAS POR DATA
+    val chamadasAgrupadas: List<Map.Entry<LocalDate, List<AttendanceEntity>>> = remember(chamadas, dataInicioFiltro, dataFimFiltro) {
+        val filtradas = chamadas.filter { item ->
+            val ts = item.dataHora
+            val okInicio = dataInicioFiltro == null || ts >= dataInicioFiltro
+            val okFim = dataFimFiltro == null || ts <= dataFimFiltro
+            okInicio && okFim
+        }
+
+        val mapa: Map<LocalDate, List<AttendanceEntity>> = filtradas.groupBy { item ->
+            Instant.fromEpochMilliseconds(item.dataHora)
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+                .date
+        }
+        mapa.entries.sortedByDescending { it.key }
+    }
+
+    // AÇÕES FILTRADAS E AGRUPADAS POR DATA
+    val acoesAgrupadas: List<Map.Entry<LocalDate, List<ActionLogEntity>>> = remember(acoes, dataInicioFiltro, dataFimFiltro) {
+        val filtradas = acoes.filter { item ->
+            val ts = item.dataHora
+            val okInicio = dataInicioFiltro == null || ts >= dataInicioFiltro
+            val okFim = dataFimFiltro == null || ts <= dataFimFiltro
+            okInicio && okFim
+        }
+
+        val mapa: Map<LocalDate, List<ActionLogEntity>> = filtradas.groupBy { item ->
+            Instant.fromEpochMilliseconds(item.dataHora)
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+                .date
+        }
+        mapa.entries.sortedByDescending { it.key }
+    }
 
     ChamaKidsScreen(
         titulo = "HISTÓRICO",
@@ -85,7 +169,7 @@ fun HistoryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
                     .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
                     .padding(4.dp)
             ) {
@@ -128,185 +212,147 @@ fun HistoryScreen(
                 }
             }
 
-            // CONTEÚDO DA ABA SELECIONADA
-            Column(
+            // BARRA DE FILTRO POR PERÍODO
+            LazyRow(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (abaSelecionada == 0) {
-                    // --- ABA CHAMADAS ---
-                    if (chamadas.isEmpty()) {
-                        Text(text = "Nenhuma chamada registrada.", color = Color.Gray, modifier = Modifier.padding(top = 16.dp))
-                    } else {
-                        chamadas.forEach { chamada ->
-                            val isSelecionado = selecionadosChamadas.contains(chamada.serverId)
-                            
-                            val zdt = Instant.fromEpochMilliseconds(chamada.dataHora).toLocalDateTime(TimeZone.currentSystemDefault())
-                            val data = "${zdt.dayOfMonth.toString().padStart(2, '0')}/${zdt.monthNumber.toString().padStart(2, '0')}/${zdt.year}"
-                            val hora = "${zdt.hour.toString().padStart(2, '0')}:${zdt.minute.toString().padStart(2, '0')}"
+                items(FiltroPeriodo.entries.toTypedArray()) { filtro ->
+                    val selecionado = filtroSelecionado == filtro
+                    FilterChip(
+                        selected = selecionado,
+                        onClick = {
+                            if (filtro == FiltroPeriodo.PERSONALIZADO) {
+                                mostrarDialogFiltroPersonalizado = true
+                            } else {
+                                filtroSelecionado = filtro
+                            }
+                        },
+                        label = {
+                            Text(
+                                text = filtro.label,
+                                fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 12.sp
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = ChamaKidsBlue,
+                            selectedLabelColor = Color.White,
+                            containerColor = Color(0xFFF0F0F0),
+                            labelColor = Color.Black
+                        )
+                    )
+                }
+            }
 
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .combinedClickable(
-                                        onClick = {
-                                            if (selecionadosChamadas.isNotEmpty()) {
-                                                if (isSelecionado) selecionadosChamadas.remove(chamada.serverId)
-                                                else selecionadosChamadas.add(chamada.serverId)
-                                            } else onAbrirChamada(chamada.serverId)
-                                        },
-                                        onLongClick = {
-                                            if (!isSelecionado) selecionadosChamadas.add(chamada.serverId)
-                                        }
-                                    ),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (isSelecionado) Color(0xFFE3F2FD) else Color.White
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(18.dp).fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        if (!chamada.nome.isNullOrBlank()) {
-                                            Text(
-                                                text = chamada.nome,
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isSelecionado) Color(0xFF1976D2) else Color.Black
-                                            )
-                                        }
-                                        Text(
-                                            text = "$data - $hora",
-                                            fontSize = 14.sp,
-                                            color = Color.Gray,
-                                            fontWeight = if (isSelecionado) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    }
+            // CONTEÚDO DA ABA SELECIONADA COM AGRUPAMENTO POR DIA
+            if (abaSelecionada == 0) {
+                // --- ABA CHAMADAS ---
+                if (chamadasAgrupadas.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.TopStart) {
+                        Text(text = "Nenhuma chamada encontrada para o período selecionado.", color = Color.Gray)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                    ) {
+                        chamadasAgrupadas.forEach { entry ->
+                            val dataLocalDate = entry.key
+                            val listaChamadasDoDia = entry.value
+                            val dataFormatted = "${dataLocalDate.dayOfMonth.toString().padStart(2, '0')}/${dataLocalDate.monthNumber.toString().padStart(2, '0')}/${dataLocalDate.year}"
 
-                                    if (isSelecionado) {
+                            // HEADER DA DATA
+                            item(key = "header_chamadas_$dataFormatted") {
+                                Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(24.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFF1976D2)),
-                                            contentAlignment = Alignment.Center
+                                                .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
+                                                .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
                                         ) {
-                                            Text(text = "✓", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = "📅 $dataFormatted",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
                                         }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        HorizontalDivider(
+                                            modifier = Modifier.weight(1f),
+                                            color = Color(0xFFCCCCCC),
+                                            thickness = 1.dp
+                                        )
                                     }
                                 }
                             }
-                        }
-                    }
-                } else {
-                    // --- ABA AÇÕES ---
-                    if (acoes.isEmpty()) {
-                        Text(text = "Nenhuma ação registrada no histórico.", color = Color.Gray, modifier = Modifier.padding(top = 16.dp))
-                    } else {
-                        acoes.forEach { acao ->
-                            val isSelecionado = selecionadosAcoes.contains(acao.serverId)
 
-                            val zdt = Instant.fromEpochMilliseconds(acao.dataHora).toLocalDateTime(TimeZone.currentSystemDefault())
-                            val dataStr = "${zdt.dayOfMonth.toString().padStart(2, '0')}/${zdt.monthNumber.toString().padStart(2, '0')}/${zdt.year}"
-                            val horaStr = "${zdt.hour.toString().padStart(2, '0')}:${zdt.minute.toString().padStart(2, '0')}"
+                            // ITENS DAS CHAMADAS DO DIA
+                            items(listaChamadasDoDia, key = { it.serverId }) { chamada ->
+                                val isSelecionado = selecionadosChamadas.contains(chamada.serverId)
+                                
+                                val zdt = Instant.fromEpochMilliseconds(chamada.dataHora).toLocalDateTime(TimeZone.currentSystemDefault())
+                                val hora = "${zdt.hour.toString().padStart(2, '0')}:${zdt.minute.toString().padStart(2, '0')}"
 
-                            val icone = when {
-                                acao.tipoAcao.contains("Membro", ignoreCase = true) -> "📝"
-                                acao.tipoAcao.contains("Chamada", ignoreCase = true) -> "📋"
-                                acao.tipoAcao.contains("Estrela", ignoreCase = true) -> "⭐"
-                                else -> "👤"
-                            }
-
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .combinedClickable(
-                                        onClick = {
-                                            if (selecionadosAcoes.isNotEmpty()) {
-                                                if (isSelecionado) selecionadosAcoes.remove(acao.serverId)
-                                                else selecionadosAcoes.add(acao.serverId)
-                                            } else {
-                                                acaoDetalhe = acao
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .combinedClickable(
+                                            onClick = {
+                                                if (selecionadosChamadas.isNotEmpty()) {
+                                                    if (isSelecionado) selecionadosChamadas.remove(chamada.serverId)
+                                                    else selecionadosChamadas.add(chamada.serverId)
+                                                } else onAbrirChamada(chamada.serverId)
+                                            },
+                                            onLongClick = {
+                                                if (!isSelecionado) selecionadosChamadas.add(chamada.serverId)
                                             }
-                                        },
-                                        onLongClick = {
-                                            if (!isSelecionado) selecionadosAcoes.add(acao.serverId)
-                                        }
+                                        ),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isSelecionado) Color(0xFFE3F2FD) else Color.White
                                     ),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (isSelecionado) Color(0xFFE3F2FD) else Color.White
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
                                     Row(
+                                        modifier = Modifier.padding(18.dp).fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(text = icone, fontSize = 20.sp, modifier = Modifier.padding(end = 8.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            if (!chamada.nome.isNullOrBlank()) {
+                                                Text(
+                                                    text = chamada.nome,
+                                                    fontSize = 18.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelecionado) Color(0xFF1976D2) else Color.Black
+                                                )
+                                            }
                                             Text(
-                                                text = acao.tipoAcao,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp,
-                                                color = Color.Black
+                                                text = "Horário: $hora",
+                                                fontSize = 14.sp,
+                                                color = Color.Gray,
+                                                fontWeight = if (isSelecionado) FontWeight.Bold else FontWeight.Normal
                                             )
                                         }
-                                        Box(
-                                            modifier = Modifier
-                                                .background(Color(0xFFE0F7FA), RoundedCornerShape(12.dp))
-                                                .border(1.dp, Color(0xFF00838F), RoundedCornerShape(12.dp))
-                                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(
-                                                text = "por ${acao.usuarioNome}",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF006064)
-                                            )
-                                        }
-                                    }
 
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    Text(
-                                        text = acao.descricao,
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF333333),
-                                        fontWeight = FontWeight.Medium
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "$dataStr - $horaStr",
-                                            fontSize = 12.sp,
-                                            color = Color.Gray
-                                        )
                                         if (isSelecionado) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(20.dp)
+                                                    .size(24.dp)
                                                     .clip(CircleShape)
                                                     .background(Color(0xFF1976D2)),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Text(text = "✓", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                Text(text = "✓", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                     }
@@ -315,8 +361,259 @@ fun HistoryScreen(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(40.dp))
+            } else {
+                // --- ABA AÇÕES ---
+                if (acoesAgrupadas.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.TopStart) {
+                        Text(text = "Nenhuma ação encontrada para o período selecionado.", color = Color.Gray)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                    ) {
+                        acoesAgrupadas.forEach { entry ->
+                            val dataLocalDate = entry.key
+                            val listaAcoesDoDia = entry.value
+                            val dataFormatted = "${dataLocalDate.dayOfMonth.toString().padStart(2, '0')}/${dataLocalDate.monthNumber.toString().padStart(2, '0')}/${dataLocalDate.year}"
+
+                            // HEADER DA DATA
+                            item(key = "header_acoes_$dataFormatted") {
+                                Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
+                                                .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "📅 $dataFormatted",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        HorizontalDivider(
+                                            modifier = Modifier.weight(1f),
+                                            color = Color(0xFFCCCCCC),
+                                            thickness = 1.dp
+                                        )
+                                    }
+                                }
+                            }
+
+                            // ITENS DAS AÇÕES DO DIA
+                            items(listaAcoesDoDia, key = { it.serverId }) { acao ->
+                                val isSelecionado = selecionadosAcoes.contains(acao.serverId)
+
+                                val zdt = Instant.fromEpochMilliseconds(acao.dataHora).toLocalDateTime(TimeZone.currentSystemDefault())
+                                val horaStr = "${zdt.hour.toString().padStart(2, '0')}:${zdt.minute.toString().padStart(2, '0')}"
+
+                                val icone = when {
+                                    acao.tipoAcao.contains("Membro", ignoreCase = true) -> "📝"
+                                    acao.tipoAcao.contains("Chamada", ignoreCase = true) -> "📋"
+                                    acao.tipoAcao.contains("Estrela", ignoreCase = true) -> "⭐"
+                                    else -> "👤"
+                                }
+
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .combinedClickable(
+                                            onClick = {
+                                                if (selecionadosAcoes.isNotEmpty()) {
+                                                    if (isSelecionado) selecionadosAcoes.remove(acao.serverId)
+                                                    else selecionadosAcoes.add(acao.serverId)
+                                                } else {
+                                                    acaoDetalhe = acao
+                                                }
+                                            },
+                                            onLongClick = {
+                                                if (!isSelecionado) selecionadosAcoes.add(acao.serverId)
+                                            }
+                                        ),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isSelecionado) Color(0xFFE3F2FD) else Color.White
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(text = icone, fontSize = 20.sp, modifier = Modifier.padding(end = 8.dp))
+                                                Text(
+                                                    text = acao.tipoAcao,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 16.sp,
+                                                    color = Color.Black
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(Color(0xFFE0F7FA), RoundedCornerShape(12.dp))
+                                                    .border(1.dp, Color(0xFF00838F), RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "por ${acao.usuarioNome}",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF006064)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Text(
+                                            text = acao.descricao,
+                                            fontSize = 14.sp,
+                                            color = Color(0xFF333333),
+                                            fontWeight = FontWeight.Medium
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Horário: $horaStr",
+                                                fontSize = 12.sp,
+                                                color = Color.Gray
+                                            )
+                                            if (isSelecionado) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF1976D2)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(text = "✓", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    // DIÁLOGO DE SELEÇÃO DE PERÍODO PERSONALIZADO
+    if (mostrarDialogFiltroPersonalizado) {
+        var tempInicioMillis by remember { mutableStateOf(dataInicioPersonalizada ?: Clock.System.now().toEpochMilliseconds()) }
+        var tempFimMillis by remember { mutableStateOf(dataFimPersonalizada ?: Clock.System.now().toEpochMilliseconds()) }
+
+        var mostrandoDatePickerInicio by remember { mutableStateOf(false) }
+        var mostrandoDatePickerFim by remember { mutableStateOf(false) }
+
+        val datePickerInicioState = rememberDatePickerState(initialSelectedDateMillis = tempInicioMillis)
+        val datePickerFimState = rememberDatePickerState(initialSelectedDateMillis = tempFimMillis)
+
+        val dtInicio = Instant.fromEpochMilliseconds(tempInicioMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+        val dtFim = Instant.fromEpochMilliseconds(tempFimMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+
+        val strInicio = "${dtInicio.dayOfMonth.toString().padStart(2, '0')}/${dtInicio.monthNumber.toString().padStart(2, '0')}/${dtInicio.year}"
+        val strFim = "${dtFim.dayOfMonth.toString().padStart(2, '0')}/${dtFim.monthNumber.toString().padStart(2, '0')}/${dtFim.year}"
+
+        AlertDialog(
+            onDismissRequest = { mostrarDialogFiltroPersonalizado = false },
+            title = { Text("Filtrar Período", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Data Inicial:", fontSize = 12.sp, color = Color.Gray)
+                    OutlinedButton(
+                        onClick = { mostrandoDatePickerInicio = true },
+                        modifier = Modifier.fillMaxWidth().height(48.dp).padding(top = 4.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("📅 De: $strInicio", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("Data Final:", fontSize = 12.sp, color = Color.Gray)
+                    OutlinedButton(
+                        onClick = { mostrandoDatePickerFim = true },
+                        modifier = Modifier.fillMaxWidth().height(48.dp).padding(top = 4.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("📅 Até: $strFim", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        dataInicioPersonalizada = tempInicioMillis
+                        dataFimPersonalizada = tempFimMillis
+                        filtroSelecionado = FiltroPeriodo.PERSONALIZADO
+                        mostrarDialogFiltroPersonalizado = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ChamaKidsAction, contentColor = Color.Black)
+                ) {
+                    Text("APLICAR FILTRO", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogFiltroPersonalizado = false }) {
+                    Text("CANCELAR")
+                }
+            }
+        )
+
+        if (mostrandoDatePickerInicio) {
+            DatePickerDialog(
+                onDismissRequest = { mostrandoDatePickerInicio = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val millis = datePickerInicioState.selectedDateMillis
+                        if (millis != null) {
+                            tempInicioMillis = adjustPickerDateToLocalMillis(millis)
+                        }
+                        mostrandoDatePickerInicio = false
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { mostrandoDatePickerInicio = false }) { Text("CANCELAR") }
+                }
+            ) { DatePicker(state = datePickerInicioState) }
+        }
+
+        if (mostrandoDatePickerFim) {
+            DatePickerDialog(
+                onDismissRequest = { mostrandoDatePickerFim = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val millis = datePickerFimState.selectedDateMillis
+                        if (millis != null) {
+                            tempFimMillis = adjustPickerDateToLocalMillis(millis)
+                        }
+                        mostrandoDatePickerFim = false
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { mostrandoDatePickerFim = false }) { Text("CANCELAR") }
+                }
+            ) { DatePicker(state = datePickerFimState) }
         }
     }
 
