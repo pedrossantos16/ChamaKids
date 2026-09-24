@@ -27,6 +27,7 @@ class AttendanceRepository(
 
     suspend fun excluirChamadas(ids: List<String>) {
         attendanceDao.excluirChamadas(ids)
+        attendanceDao.excluirRegistrosDasChamadas(ids)
         ids.forEach { id ->
             FirebaseSyncManager.deleteAttendance(id)
         }

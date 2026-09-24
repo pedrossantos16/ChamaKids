@@ -33,6 +33,9 @@ interface AttendanceDao {
     @Query("DELETE FROM attendances WHERE serverId IN (:ids)")
     suspend fun excluirChamadas(ids: List<String>)
 
+    @Query("DELETE FROM attendance_records WHERE attendanceId IN (:ids)")
+    suspend fun excluirRegistrosDasChamadas(ids: List<String>)
+
     @Query("""
         SELECT m.serverId as id, m.nome, m.fotoUri, COUNT(r.attendanceId) as count
         FROM members m

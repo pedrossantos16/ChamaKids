@@ -291,6 +291,7 @@ object FirebaseSyncManager {
                     database.attendanceDao().buscarTodasChamadas().forEach { local ->
                         if (local.serverId !in remoteIds) {
                             database.attendanceDao().excluirChamadas(listOf(local.serverId))
+                            database.attendanceDao().excluirRegistrosDasChamadas(listOf(local.serverId))
                         }
                     }
                 }
@@ -372,10 +373,12 @@ object FirebaseSyncManager {
 
     suspend fun deleteAttendance(serverId: String) {
         try {
-            val recSnapshot = firestore.collection("attendances").document(serverId).collection("records").get()
-            recSnapshot.documents.forEach { rDoc ->
-                firestore.collection("attendances").document(serverId).collection("records").document(rDoc.id).delete()
-            }
+            try {
+                val recSnapshot = firestore.collection("attendances").document(serverId).collection("records").get()
+                recSnapshot.documents.forEach { rDoc ->
+                    firestore.collection("attendances").document(serverId).collection("records").document(rDoc.id).delete()
+                }
+            } catch (_: Exception) {}
             firestore.collection("attendances").document(serverId).delete()
         } catch (e: Exception) {
             _errorMessage.value = "Erro ao excluir chamada na nuvem: ${e.message}"
