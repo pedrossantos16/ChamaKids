@@ -100,6 +100,9 @@ class AttendanceViewModel : ViewModel() {
     fun excluirAcoes(ids: List<String>) {
         viewModelScope.launch {
             database.actionLogDao().excluirAcoes(ids)
+            ids.forEach { id ->
+                com.pedro.ChamaKids.data.FirebaseSyncManager.deleteActionLog(id)
+            }
         }
     }
 

@@ -370,6 +370,69 @@ object FirebaseSyncManager {
         }
     }
 
+    suspend fun deleteAttendance(serverId: String) {
+        try {
+            val recSnapshot = firestore.collection("attendances").document(serverId).collection("records").get()
+            recSnapshot.documents.forEach { rDoc ->
+                firestore.collection("attendances").document(serverId).collection("records").document(rDoc.id).delete()
+            }
+            firestore.collection("attendances").document(serverId).delete()
+        } catch (e: Exception) {
+            _errorMessage.value = "Erro ao excluir chamada na nuvem: ${e.message}"
+        }
+    }
+
+    suspend fun deleteActionLog(serverId: String) {
+        try {
+            firestore.collection("action_logs").document(serverId).delete()
+        } catch (e: Exception) {
+            _errorMessage.value = "Erro ao excluir ação na nuvem: ${e.message}"
+        }
+    }
+
+    suspend fun clearModuleMembers(database: ChamaKidsDatabase) {
+        database.memberDao().limparTodos()
+        clearFirestoreCollection("members")
+    }
+
+    suspend fun clearModuleAttendances(database: ChamaKidsDatabase) {
+        database.attendanceDao().limparTodasChamadas()
+        database.attendanceDao().limparTodosRegistros()
+        clearFirestoreCollection("attendances")
+    }
+
+    suspend fun clearModuleStars(database: ChamaKidsDatabase) {
+        database.starDao().limparTodasEstrelas()
+        clearFirestoreCollection("stars")
+    }
+
+    suspend fun clearModuleActionLogs(database: ChamaKidsDatabase) {
+        database.actionLogDao().limparTudo()
+        clearFirestoreCollection("action_logs")
+    }
+
+    suspend fun clearModuleUsers(database: ChamaKidsDatabase) {
+        database.userDao().limparTodos()
+        clearFirestoreCollection("users")
+    }
+
+    private suspend fun clearFirestoreCollection(collectionName: String) {
+        try {
+            val snapshot = firestore.collection(collectionName).get()
+            snapshot.documents.forEach { doc ->
+                if (collectionName == "attendances") {
+                    try {
+                        val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
+                        recSnapshot.documents.forEach { rDoc ->
+                            firestore.collection("attendances").document(doc.id).collection("records").document(rDoc.id).delete()
+                        }
+                    } catch (_: Exception) {}
+                }
+                firestore.collection(collectionName).document(doc.id).delete()
+            }
+        } catch (_: Exception) {}
+    }
+
     suspend fun factoryReset(database: ChamaKidsDatabase) {
         // 1. Limpa banco de dados local (Room) IMEDIATAMENTE
         try {
@@ -390,20 +453,7 @@ object FirebaseSyncManager {
         // 3. Limpa Firestore Cloud em segundo plano
         val collections = listOf("members", "attendances", "stars", "users", "action_logs")
         collections.forEach { coll ->
-            try {
-                val snapshot = firestore.collection(coll).get()
-                snapshot.documents.forEach { doc ->
-                    if (coll == "attendances") {
-                        try {
-                            val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
-                            recSnapshot.documents.forEach { rDoc ->
-                                firestore.collection("attendances").document(doc.id).collection("records").document(rDoc.id).delete()
-                            }
-                        } catch (_: Exception) {}
-                    }
-                    firestore.collection(coll).document(doc.id).delete()
-                }
-            } catch (_: Exception) {}
+            clearFirestoreCollection(coll)
         }
     }
 }

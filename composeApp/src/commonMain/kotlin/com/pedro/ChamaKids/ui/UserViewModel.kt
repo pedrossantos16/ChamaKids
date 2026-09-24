@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pedro.ChamaKids.DeviceIdentifier
 import com.pedro.ChamaKids.data.DatabaseProvider
 import com.pedro.ChamaKids.data.FirebaseSyncManager
+import com.pedro.ChamaKids.data.MemberEntity
 import com.pedro.ChamaKids.data.SecurityStateEntity
 import com.pedro.ChamaKids.data.UserEntity
 import kotlinx.coroutines.delay
@@ -47,6 +48,12 @@ class UserViewModel : ViewModel() {
 
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
     val currentUser = _currentUser.asStateFlow()
+
+    val totalMembros = database.memberDao().observarContagem().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val totalChamadas = database.attendanceDao().observarContagem().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val totalEstrelas = database.starDao().observarContagem().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val totalAcoes = database.actionLogDao().observarContagem().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val totalUsuarios = database.userDao().observarContagem().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     private val BLOCK_TIME_MS = 35 * 60 * 1000L
 
@@ -219,6 +226,45 @@ class UserViewModel : ViewModel() {
             _currentUser.value = null
             _isBlocked.value = false
             _securityState.value = null
+        }
+    }
+
+    fun limparModulo(moduloKey: String, nomeModulo: String) {
+        viewModelScope.launch {
+            when (moduloKey) {
+                "membros" -> FirebaseSyncManager.clearModuleMembers(database)
+                "chamadas" -> FirebaseSyncManager.clearModuleAttendances(database)
+                "estrelas" -> FirebaseSyncManager.clearModuleStars(database)
+                "acoes" -> FirebaseSyncManager.clearModuleActionLogs(database)
+                "usuarios" -> {
+                    FirebaseSyncManager.clearModuleUsers(database)
+                    _currentUser.value = null
+                }
+            }
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Módulo Limpo",
+                descricao = "Limpou todos os dados do módulo '$nomeModulo'",
+                usuarioNome = _currentUser.value?.nome
+            )
+        }
+    }
+
+    fun cadastrarMembroDireto(nome: String) {
+        viewModelScope.launch {
+            val novo = com.pedro.ChamaKids.data.MemberEntity(
+                serverId = com.pedro.ChamaKids.IdGenerator.generate(),
+                nome = nome.trim(),
+                ativo = true,
+                criadoPor = _currentUser.value?.nome,
+                lastUpdated = Clock.System.now().toEpochMilliseconds()
+            )
+            database.memberDao().inserir(novo)
+            FirebaseSyncManager.syncMember(novo)
+            com.pedro.ChamaKids.data.ActionLogManager.registrarAcao(
+                tipoAcao = "Membro Adicionado",
+                descricao = "Cadastrou o membro '$nome' via Central do Software",
+                usuarioNome = _currentUser.value?.nome
+            )
         }
     }
 

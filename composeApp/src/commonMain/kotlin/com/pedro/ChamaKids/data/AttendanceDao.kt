@@ -74,6 +74,9 @@ interface AttendanceDao {
 
     @Query("DELETE FROM attendance_records")
     suspend fun limparTodosRegistros()
+
+    @Query("SELECT COUNT(*) FROM attendances")
+    fun observarContagem(): Flow<Int>
 }
 
 data class MemberWithStats(

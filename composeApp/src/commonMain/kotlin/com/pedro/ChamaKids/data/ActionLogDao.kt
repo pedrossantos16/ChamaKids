@@ -25,4 +25,7 @@ interface ActionLogDao {
 
     @Query("DELETE FROM action_logs")
     suspend fun limparTudo()
+
+    @Query("SELECT COUNT(*) FROM action_logs")
+    fun observarContagem(): Flow<Int>
 }

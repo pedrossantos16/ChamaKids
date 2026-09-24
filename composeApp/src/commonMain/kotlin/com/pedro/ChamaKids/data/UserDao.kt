@@ -25,4 +25,7 @@ interface UserDao {
 
     @Query("DELETE FROM users")
     suspend fun limparTodos()
+
+    @Query("SELECT COUNT(*) FROM users")
+    fun observarContagem(): Flow<Int>
 }

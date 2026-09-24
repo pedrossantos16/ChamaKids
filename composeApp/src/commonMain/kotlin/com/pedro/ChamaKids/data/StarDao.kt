@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface StarDao {
@@ -59,6 +60,9 @@ interface StarDao {
 
     @Query("DELETE FROM star_records")
     suspend fun limparTodasEstrelas()
+
+    @Query("SELECT COUNT(*) FROM star_records")
+    fun observarContagem(): Flow<Int>
 }
 
 data class MemberWithStarStats(

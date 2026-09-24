@@ -217,7 +217,7 @@ fun AttendanceScreen(
                 TextButton(onClick = {
                     val millis = datePickerState.selectedDateMillis
                     if (millis != null) {
-                        dataSelecionadaMillis = millis
+                        dataSelecionadaMillis = adjustPickerDateToLocalMillis(millis)
                     }
                     mostrarCalendario = false
                 }) { Text("OK") }

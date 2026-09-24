@@ -27,7 +27,9 @@ class AttendanceRepository(
 
     suspend fun excluirChamadas(ids: List<String>) {
         attendanceDao.excluirChamadas(ids)
-        // Opcional: deletar no Firestore também
+        ids.forEach { id ->
+            FirebaseSyncManager.deleteAttendance(id)
+        }
     }
 
     suspend fun buscarMembroMaisPresente(inicio: Long, fim: Long) =

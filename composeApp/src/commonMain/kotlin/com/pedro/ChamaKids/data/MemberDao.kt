@@ -39,4 +39,7 @@ interface MemberDao {
 
     @Query("DELETE FROM members WHERE serverId = :serverId")
     suspend fun excluirPorServerId(serverId: String)
+
+    @Query("SELECT COUNT(*) FROM members")
+    fun observarContagem(): Flow<Int>
 }

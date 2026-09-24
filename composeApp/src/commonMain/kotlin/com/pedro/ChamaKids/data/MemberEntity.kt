@@ -14,27 +14,27 @@ data class MemberEntity(
 
     val nome: String,
 
-    val cpf: String,
+    val cpf: String = "",
 
-    val rg: String,
+    val rg: String = "",
 
-    val dataNascimento: String?,
+    val dataNascimento: String? = null,
 
-    val endereco: String,
+    val endereco: String = "",
 
-    val celularMembro: String,
+    val celularMembro: String = "",
 
-    val telefone: String,
+    val telefone: String = "",
 
-    val nomePai: String,
+    val nomePai: String = "",
 
-    val celularPai: String,
+    val celularPai: String = "",
 
-    val nomeMae: String,
+    val nomeMae: String = "",
 
-    val celularMae: String,
+    val celularMae: String = "",
 
-    val fotoUri: String?,
+    val fotoUri: String? = null,
 
     val ativo: Boolean = true,
 
