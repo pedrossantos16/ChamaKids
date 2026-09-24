@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
-  "versionName": "1.1.1",
-  "apkUrl": "https://github.com/pedrossantos16/ChamaKids/releases/download/v1.1.1/composeApp-release.apk",
+  "versionCode": 12,
+  "versionName": "1.1.2",
+  "apkUrl": "https://github.com/pedrossantos16/ChamaKids/releases/download/v1.1.2/composeApp-release.apk",
   "releaseNotes": "Item deletado no historico voltando ao reabrir o app; correção no sistemas de datas."
 }
