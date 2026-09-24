@@ -270,10 +270,11 @@ object FirebaseSyncManager {
                             )
                             database.attendanceDao().inserirChamada(attendance)
                             
-                            // Inicia um listener para os registros desta chamada específica
-                            scope.launch {
-                                firestore.collection("attendances").document(doc.id).collection("records").snapshots().collect { rSnapshot ->
-                                    val entities = rSnapshot.documents.map { rDoc ->
+                            // Busca os registros de presença da chamada de forma isolada e segura
+                            try {
+                                val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
+                                val entities = recSnapshot.documents.mapNotNull { rDoc ->
+                                    try {
                                         val rData = rDoc.data(RecordDoc.serializer())
                                         AttendanceRecordEntity(
                                             serverId = rDoc.id,
@@ -282,10 +283,12 @@ object FirebaseSyncManager {
                                             presente = rData.presente,
                                             lastUpdated = rData.lastUpdated
                                         )
-                                    }
+                                    } catch (_: Exception) { null }
+                                }
+                                if (entities.isNotEmpty()) {
                                     database.attendanceDao().inserirRegistros(entities)
                                 }
-                            }
+                            } catch (_: Exception) {}
                         } catch (_: Exception) {}
                     }
                     database.attendanceDao().buscarTodasChamadas().forEach { local ->
