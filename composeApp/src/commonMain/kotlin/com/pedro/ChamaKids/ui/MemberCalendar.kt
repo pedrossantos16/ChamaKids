@@ -76,7 +76,7 @@ fun CalendarioMensal(
 
                         if (historico != null) {
                             val registrosNoDia = historico.filter {
-                                val dateTime = Instant.fromEpochMilliseconds(it.dataHora).toLocalDateTime(TimeZone.UTC)
+                                val dateTime = Instant.fromEpochMilliseconds(it.dataHora).toLocalDateTime(TimeZone.currentSystemDefault())
                                 dateTime.year == ano &&
                                         dateTime.monthNumber == mesKmp &&
                                         dateTime.dayOfMonth == localDia
@@ -89,7 +89,7 @@ fun CalendarioMensal(
                             }
                         } else if (historicoEstrelas != null) {
                             val temEstrela = historicoEstrelas.any {
-                                val dateTime = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC)
+                                val dateTime = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault())
                                 dateTime.year == ano &&
                                         dateTime.monthNumber == mesKmp &&
                                         dateTime.dayOfMonth == localDia

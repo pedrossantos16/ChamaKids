@@ -80,6 +80,9 @@ object FirebaseSyncManager {
     private val _syncing = MutableStateFlow(false)
     val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
 
+    private val _isOnline = MutableStateFlow(true)
+    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
@@ -94,7 +97,24 @@ object FirebaseSyncManager {
         }
     }
 
+    private fun startCloudAction() {
+        _syncing.value = true
+    }
+
+    private fun finishCloudSuccess() {
+        _syncing.value = false
+        _isOnline.value = true
+        _errorMessage.value = null
+    }
+
+    private fun finishCloudError(msg: String) {
+        _syncing.value = false
+        _isOnline.value = false
+        _errorMessage.value = msg
+    }
+
     suspend fun syncMember(member: MemberEntity) {
+        startCloudAction()
         try {
             val doc = MemberDoc(
                 nome = member.nome,
@@ -115,21 +135,25 @@ object FirebaseSyncManager {
                 lastUpdated = Clock.System.now().toEpochMilliseconds()
             )
             firestore.collection("members").document(member.serverId).set(MemberDoc.serializer(), doc)
+            finishCloudSuccess()
         } catch (e: Exception) {
-            _errorMessage.value = "Erro membro: ${e.message}"
+            finishCloudError("Erro membro: ${e.message}")
         }
     }
 
     suspend fun syncUser(user: UserEntity) {
+        startCloudAction()
         try {
             val doc = UserDoc(user.nome, user.fraseSecreta, user.lastUpdated, user.bloqueado)
             firestore.collection("users").document(user.serverId).set(UserDoc.serializer(), doc)
+            finishCloudSuccess()
         } catch (e: Exception) {
-            _errorMessage.value = "Erro usuário: ${e.message}"
+            finishCloudError("Erro usuário: ${e.message}")
         }
     }
 
     suspend fun syncAttendance(attendance: AttendanceEntity, records: List<AttendanceRecordEntity>) {
+        startCloudAction()
         try {
             val aDoc = AttendanceDoc(attendance.nome, attendance.dataHora, attendance.criadoPor, Clock.System.now().toEpochMilliseconds())
             firestore.collection("attendances").document(attendance.serverId).set(AttendanceDoc.serializer(), aDoc)
@@ -139,34 +163,87 @@ object FirebaseSyncManager {
                 val rDoc = RecordDoc(record.memberId, record.presente, Clock.System.now().toEpochMilliseconds())
                 recordsCollection.document(record.serverId).set(RecordDoc.serializer(), rDoc)
             }
+            finishCloudSuccess()
         } catch (e: Exception) {
-            _errorMessage.value = "Erro chamada: ${e.message}"
+            finishCloudError("Erro chamada: ${e.message}")
         }
     }
 
     suspend fun syncStar(star: StarRecordEntity) {
+        startCloudAction()
         try {
             val sDoc = StarDoc(star.memberId, star.dataHora, star.comentario, star.criadoPor, Clock.System.now().toEpochMilliseconds())
             firestore.collection("stars").document(star.serverId).set(StarDoc.serializer(), sDoc)
+            finishCloudSuccess()
         } catch (e: Exception) {
-            _errorMessage.value = "Erro estrela: ${e.message}"
+            finishCloudError("Erro estrela: ${e.message}")
         }
     }
 
     suspend fun syncActionLog(log: ActionLogEntity) {
+        startCloudAction()
         try {
             val doc = ActionLogDoc(log.usuarioNome, log.tipoAcao, log.descricao, log.dataHora, log.lastUpdated)
             firestore.collection("action_logs").document(log.serverId).set(ActionLogDoc.serializer(), doc)
+            finishCloudSuccess()
         } catch (e: Exception) {
-            _errorMessage.value = "Erro log ação: ${e.message}"
+            finishCloudError("Erro log ação: ${e.message}")
         }
     }
 
     suspend fun setFrozen(frozen: Boolean) {
+        startCloudAction()
         try {
             firestore.collection("app_config").document("global").set(AppConfigDoc.serializer(), AppConfigDoc(frozen))
+            finishCloudSuccess()
         } catch (e: Exception) {
-            _errorMessage.value = "Erro congelar: ${e.message}"
+            finishCloudError("Erro congelar: ${e.message}")
+        }
+    }
+
+    suspend fun deleteUser(serverId: String) {
+        startCloudAction()
+        try {
+            firestore.collection("users").document(serverId).delete()
+            finishCloudSuccess()
+        } catch (e: Exception) {
+            finishCloudError("Erro ao excluir usuário: ${e.message}")
+        }
+    }
+
+    suspend fun deleteStar(serverId: String) {
+        startCloudAction()
+        try {
+            firestore.collection("stars").document(serverId).delete()
+            finishCloudSuccess()
+        } catch (e: Exception) {
+            finishCloudError("Erro ao excluir estrela: ${e.message}")
+        }
+    }
+
+    suspend fun deleteAttendance(serverId: String) {
+        startCloudAction()
+        try {
+            try {
+                val recSnapshot = firestore.collection("attendances").document(serverId).collection("records").get()
+                recSnapshot.documents.forEach { rDoc ->
+                    firestore.collection("attendances").document(serverId).collection("records").document(rDoc.id).delete()
+                }
+            } catch (_: Exception) {}
+            firestore.collection("attendances").document(serverId).delete()
+            finishCloudSuccess()
+        } catch (e: Exception) {
+            finishCloudError("Erro ao excluir chamada na nuvem: ${e.message}")
+        }
+    }
+
+    suspend fun deleteActionLog(serverId: String) {
+        startCloudAction()
+        try {
+            firestore.collection("action_logs").document(serverId).delete()
+            finishCloudSuccess()
+        } catch (e: Exception) {
+            finishCloudError("Erro ao excluir ação na nuvem: ${e.message}")
         }
     }
 
@@ -189,23 +266,25 @@ object FirebaseSyncManager {
         scope.launch {
             try {
                 firestore.collection("users").snapshots().collect { snapshot ->
-                    val remoteIds = snapshot.documents.map { it.id }.toSet()
-                    snapshot.documents.forEach { doc ->
-                        try {
-                            val data = doc.data(UserDoc.serializer())
-                            val user = UserEntity(
-                                serverId = doc.id,
-                                nome = data.nome,
-                                fraseSecreta = data.fraseSecreta,
-                                lastUpdated = data.lastUpdated,
-                                bloqueado = data.bloqueado
-                            )
-                            database.userDao().inserir(user)
-                        } catch (_: Exception) {}
-                    }
-                    database.userDao().todosUsuarios().forEach { local ->
-                        if (local.serverId !in remoteIds) {
-                            database.userDao().excluirPorServerId(local.serverId)
+                    if (snapshot.documents.isNotEmpty()) {
+                        val remoteIds = snapshot.documents.map { it.id }.toSet()
+                        snapshot.documents.forEach { doc ->
+                            try {
+                                val data = doc.data(UserDoc.serializer())
+                                val user = UserEntity(
+                                    serverId = doc.id,
+                                    nome = data.nome,
+                                    fraseSecreta = data.fraseSecreta,
+                                    lastUpdated = data.lastUpdated,
+                                    bloqueado = data.bloqueado
+                                )
+                                database.userDao().inserir(user)
+                            } catch (_: Exception) {}
+                        }
+                        database.userDao().todosUsuarios().forEach { local ->
+                            if (local.serverId !in remoteIds) {
+                                database.userDao().excluirPorServerId(local.serverId)
+                            }
                         }
                     }
                 }
@@ -217,35 +296,37 @@ object FirebaseSyncManager {
             try {
                 firestore.collection("members").snapshots().collect { snapshot ->
                     _syncing.value = true
-                    val remoteIds = snapshot.documents.map { it.id }.toSet()
-                    snapshot.documents.forEach { doc ->
-                        try {
-                            val data = doc.data(MemberDoc.serializer())
-                            val member = MemberEntity(
-                                serverId = doc.id,
-                                nome = data.nome,
-                                cpf = data.cpf,
-                                rg = data.rg,
-                                dataNascimento = data.dataNascimento,
-                                endereco = data.endereco,
-                                celularMembro = data.celularMembro,
-                                telefone = data.telefone,
-                                nomePai = data.nomePai,
-                                celularPai = data.celularPai,
-                                nomeMae = data.nomeMae,
-                                celularMae = data.celularMae,
-                                fotoUri = data.fotoUri,
-                                ativo = data.ativo,
-                                criadoPor = data.criadoPor,
-                                ultimaAlteracaoPor = data.ultimaAlteracaoPor,
-                                lastUpdated = data.lastUpdated
-                            )
-                            database.memberDao().inserir(member)
-                        } catch (_: Exception) {}
-                    }
-                    database.memberDao().buscarTodos().forEach { local ->
-                        if (local.serverId !in remoteIds) {
-                            database.memberDao().excluirPorServerId(local.serverId)
+                    if (snapshot.documents.isNotEmpty()) {
+                        val remoteIds = snapshot.documents.map { it.id }.toSet()
+                        snapshot.documents.forEach { doc ->
+                            try {
+                                val data = doc.data(MemberDoc.serializer())
+                                val member = MemberEntity(
+                                    serverId = doc.id,
+                                    nome = data.nome,
+                                    cpf = data.cpf,
+                                    rg = data.rg,
+                                    dataNascimento = data.dataNascimento,
+                                    endereco = data.endereco,
+                                    celularMembro = data.celularMembro,
+                                    telefone = data.telefone,
+                                    nomePai = data.nomePai,
+                                    celularPai = data.celularPai,
+                                    nomeMae = data.nomeMae,
+                                    celularMae = data.celularMae,
+                                    fotoUri = data.fotoUri,
+                                    ativo = data.ativo,
+                                    criadoPor = data.criadoPor,
+                                    ultimaAlteracaoPor = data.ultimaAlteracaoPor,
+                                    lastUpdated = data.lastUpdated
+                                )
+                                database.memberDao().inserir(member)
+                            } catch (_: Exception) {}
+                        }
+                        database.memberDao().buscarTodos().forEach { local ->
+                            if (local.serverId !in remoteIds) {
+                                database.memberDao().excluirPorServerId(local.serverId)
+                            }
                         }
                     }
                     _syncing.value = false
@@ -257,44 +338,46 @@ object FirebaseSyncManager {
         scope.launch {
             try {
                 firestore.collection("attendances").snapshots().collect { snapshot ->
-                    val remoteIds = snapshot.documents.map { it.id }.toSet()
-                    snapshot.documents.forEach { doc ->
-                        try {
-                            val data = doc.data(AttendanceDoc.serializer())
-                            val attendance = AttendanceEntity(
-                                serverId = doc.id,
-                                nome = data.nome,
-                                dataHora = data.dataHora,
-                                criadoPor = data.criadoPor,
-                                lastUpdated = data.lastUpdated
-                            )
-                            database.attendanceDao().inserirChamada(attendance)
-                            
-                            // Busca os registros de presença da chamada de forma isolada e segura
+                    if (snapshot.documents.isNotEmpty()) {
+                        val remoteIds = snapshot.documents.map { it.id }.toSet()
+                        snapshot.documents.forEach { doc ->
                             try {
-                                val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
-                                val entities = recSnapshot.documents.mapNotNull { rDoc ->
-                                    try {
-                                        val rData = rDoc.data(RecordDoc.serializer())
-                                        AttendanceRecordEntity(
-                                            serverId = rDoc.id,
-                                            attendanceId = doc.id,
-                                            memberId = rData.memberId,
-                                            presente = rData.presente,
-                                            lastUpdated = rData.lastUpdated
-                                        )
-                                    } catch (_: Exception) { null }
-                                }
-                                if (entities.isNotEmpty()) {
-                                    database.attendanceDao().inserirRegistros(entities)
-                                }
+                                val data = doc.data(AttendanceDoc.serializer())
+                                val attendance = AttendanceEntity(
+                                    serverId = doc.id,
+                                    nome = data.nome,
+                                    dataHora = data.dataHora,
+                                    criadoPor = data.criadoPor,
+                                    lastUpdated = data.lastUpdated
+                                )
+                                database.attendanceDao().inserirChamada(attendance)
+                                
+                                // Busca os registros de presença da chamada de forma isolada e segura
+                                try {
+                                    val recSnapshot = firestore.collection("attendances").document(doc.id).collection("records").get()
+                                    val entities = recSnapshot.documents.mapNotNull { rDoc ->
+                                        try {
+                                            val rData = rDoc.data(RecordDoc.serializer())
+                                            AttendanceRecordEntity(
+                                                serverId = rDoc.id,
+                                                attendanceId = doc.id,
+                                                memberId = rData.memberId,
+                                                presente = rData.presente,
+                                                lastUpdated = rData.lastUpdated
+                                            )
+                                        } catch (_: Exception) { null }
+                                    }
+                                    if (entities.isNotEmpty()) {
+                                        database.attendanceDao().inserirRegistros(entities)
+                                    }
+                                } catch (_: Exception) {}
                             } catch (_: Exception) {}
-                        } catch (_: Exception) {}
-                    }
-                    database.attendanceDao().buscarTodasChamadas().forEach { local ->
-                        if (local.serverId !in remoteIds) {
-                            database.attendanceDao().excluirChamadas(listOf(local.serverId))
-                            database.attendanceDao().excluirRegistrosDasChamadas(listOf(local.serverId))
+                        }
+                        database.attendanceDao().buscarTodasChamadas().forEach { local ->
+                            if (local.serverId !in remoteIds) {
+                                database.attendanceDao().excluirChamadas(listOf(local.serverId))
+                                database.attendanceDao().excluirRegistrosDasChamadas(listOf(local.serverId))
+                            }
                         }
                     }
                 }
@@ -305,24 +388,26 @@ object FirebaseSyncManager {
         scope.launch {
             try {
                 firestore.collection("stars").snapshots().collect { snapshot ->
-                    val remoteIds = snapshot.documents.map { it.id }.toSet()
-                    snapshot.documents.forEach { doc ->
-                        try {
-                            val data = doc.data(StarDoc.serializer())
-                            val star = StarRecordEntity(
-                                serverId = doc.id,
-                                memberId = data.memberId,
-                                dataHora = data.dataHora,
-                                comentario = data.comentario,
-                                criadoPor = data.criadoPor,
-                                lastUpdated = data.lastUpdated
-                            )
-                            database.starDao().inserirEstrela(star)
-                        } catch (_: Exception) {}
-                    }
-                    database.starDao().buscarTodasEstrelas().forEach { local ->
-                        if (local.serverId !in remoteIds) {
-                            database.starDao().excluirPorServerId(local.serverId)
+                    if (snapshot.documents.isNotEmpty()) {
+                        val remoteIds = snapshot.documents.map { it.id }.toSet()
+                        snapshot.documents.forEach { doc ->
+                            try {
+                                val data = doc.data(StarDoc.serializer())
+                                val star = StarRecordEntity(
+                                    serverId = doc.id,
+                                    memberId = data.memberId,
+                                    dataHora = data.dataHora,
+                                    comentario = data.comentario,
+                                    criadoPor = data.criadoPor,
+                                    lastUpdated = data.lastUpdated
+                                )
+                                database.starDao().inserirEstrela(star)
+                            } catch (_: Exception) {}
+                        }
+                        database.starDao().buscarTodasEstrelas().forEach { local ->
+                            if (local.serverId !in remoteIds) {
+                                database.starDao().excluirPorServerId(local.serverId)
+                            }
                         }
                     }
                 }
@@ -333,66 +418,30 @@ object FirebaseSyncManager {
         scope.launch {
             try {
                 firestore.collection("action_logs").snapshots().collect { snapshot ->
-                    val remoteIds = snapshot.documents.map { it.id }.toSet()
-                    snapshot.documents.forEach { doc ->
-                        try {
-                            val data = doc.data(ActionLogDoc.serializer())
-                            val log = ActionLogEntity(
-                                serverId = doc.id,
-                                usuarioNome = data.usuarioNome,
-                                tipoAcao = data.tipoAcao,
-                                descricao = data.descricao,
-                                dataHora = data.dataHora,
-                                lastUpdated = data.lastUpdated
-                            )
-                            database.actionLogDao().inserir(log)
-                        } catch (_: Exception) {}
-                    }
-                    database.actionLogDao().buscarTodasAcoes().forEach { local ->
-                        if (local.serverId !in remoteIds) {
-                            database.actionLogDao().excluirPorServerId(local.serverId)
+                    if (snapshot.documents.isNotEmpty()) {
+                        val remoteIds = snapshot.documents.map { it.id }.toSet()
+                        snapshot.documents.forEach { doc ->
+                            try {
+                                val data = doc.data(ActionLogDoc.serializer())
+                                val log = ActionLogEntity(
+                                    serverId = doc.id,
+                                    usuarioNome = data.usuarioNome,
+                                    tipoAcao = data.tipoAcao,
+                                    descricao = data.descricao,
+                                    dataHora = data.dataHora,
+                                    lastUpdated = data.lastUpdated
+                                )
+                                database.actionLogDao().inserir(log)
+                            } catch (_: Exception) {}
+                        }
+                        database.actionLogDao().buscarTodasAcoes().forEach { local ->
+                            if (local.serverId !in remoteIds) {
+                                database.actionLogDao().excluirPorServerId(local.serverId)
+                            }
                         }
                     }
                 }
             } catch (e: Exception) { _errorMessage.value = "Sinc ações: ${e.message}" }
-        }
-    }
-    
-    suspend fun deleteUser(serverId: String) {
-        try {
-            firestore.collection("users").document(serverId).delete()
-        } catch (e: Exception) {
-            _errorMessage.value = "Erro ao excluir usuário: ${e.message}"
-        }
-    }
-
-    suspend fun deleteStar(serverId: String) {
-        try {
-            firestore.collection("stars").document(serverId).delete()
-        } catch (e: Exception) {
-            _errorMessage.value = "Erro ao excluir estrela: ${e.message}"
-        }
-    }
-
-    suspend fun deleteAttendance(serverId: String) {
-        try {
-            try {
-                val recSnapshot = firestore.collection("attendances").document(serverId).collection("records").get()
-                recSnapshot.documents.forEach { rDoc ->
-                    firestore.collection("attendances").document(serverId).collection("records").document(rDoc.id).delete()
-                }
-            } catch (_: Exception) {}
-            firestore.collection("attendances").document(serverId).delete()
-        } catch (e: Exception) {
-            _errorMessage.value = "Erro ao excluir chamada na nuvem: ${e.message}"
-        }
-    }
-
-    suspend fun deleteActionLog(serverId: String) {
-        try {
-            firestore.collection("action_logs").document(serverId).delete()
-        } catch (e: Exception) {
-            _errorMessage.value = "Erro ao excluir ação na nuvem: ${e.message}"
         }
     }
 
