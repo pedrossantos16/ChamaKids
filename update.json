@@ -1,6 +1,6 @@
 {
-  "versionCode": 12,
-  "versionName": "1.1.2",
-  "apkUrl": "https://github.com/pedrossantos16/ChamaKids/releases/download/v1.1.2/composeApp-release.apk",
-  "releaseNotes": "Item deletado no historico voltando ao reabrir o app; correção no sistemas de datas."
+  "versionCode": 13,
+  "versionName": "1.1.3",
+  "apkUrl": "https://github.com/pedrossantos16/ChamaKids/releases/download/v1.1.3/composeApp-release.apk",
+  "releaseNotes": "Atualização dos cards do histórico em tempo real; Correção dos calendários da chamada e estrelas."
 }
