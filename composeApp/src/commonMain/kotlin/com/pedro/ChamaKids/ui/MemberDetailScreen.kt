@@ -54,6 +54,10 @@ fun MemberDetailScreen(
     var celularMae by remember { mutableStateOf("") }
     var fotoUri by remember { mutableStateOf<String?>(null) }
 
+    val pickPhoto = rememberPhotoPicker { uri ->
+        fotoUri = uri
+    }
+
     LaunchedEffect(serverId) {
         val membro = viewModel.buscarMembroPorId(serverId)
         if (membro != null) {
@@ -106,7 +110,8 @@ fun MemberDetailScreen(
                                 MemberImage(
                                     fotoUri = fotoUri,
                                     modifier = Modifier.fillMaxSize(),
-                                    placeholderText = "+ FOTO"
+                                    placeholderText = "+ FOTO",
+                                    onClick = pickPhoto
                                 )
                             }
                         }
