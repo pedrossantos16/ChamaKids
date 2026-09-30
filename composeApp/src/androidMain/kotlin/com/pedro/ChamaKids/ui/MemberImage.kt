@@ -9,17 +9,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 actual fun MemberImage(
@@ -29,19 +30,43 @@ actual fun MemberImage(
     onClick: (() -> Unit)?
 ) {
     val context = LocalContext.current
-    val bitmap = remember(fotoUri) {
-        if (fotoUri.isNullOrBlank()) null
-        else {
+    var bitmap by remember(fotoUri) { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(fotoUri) {
+        if (fotoUri.isNullOrBlank()) {
+            bitmap = null
+            return@LaunchedEffect
+        }
+
+        withContext(Dispatchers.IO) {
             try {
-                if (fotoUri.startsWith("/")) {
-                    BitmapFactory.decodeFile(fotoUri)
-                } else {
-                    context.contentResolver.openInputStream(Uri.parse(fotoUri))?.use {
-                        BitmapFactory.decodeStream(it)
+                val loadedBitmap = when {
+                    fotoUri.startsWith("data:image/") -> {
+                        val base64Data = fotoUri.substringAfter("base64,")
+                        val imageBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                        BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
+                    }
+                    fotoUri.startsWith("http://") || fotoUri.startsWith("https://") -> {
+                        val url = java.net.URL(fotoUri)
+                        val connection = url.openConnection()
+                        connection.connectTimeout = 8000
+                        connection.readTimeout = 8000
+                        connection.getInputStream().use { stream ->
+                            BitmapFactory.decodeStream(stream)?.asImageBitmap()
+                        }
+                    }
+                    fotoUri.startsWith("/") -> {
+                        BitmapFactory.decodeFile(fotoUri)?.asImageBitmap()
+                    }
+                    else -> {
+                        context.contentResolver.openInputStream(Uri.parse(fotoUri))?.use { stream ->
+                            BitmapFactory.decodeStream(stream)?.asImageBitmap()
+                        }
                     }
                 }
+                bitmap = loadedBitmap
             } catch (_: Exception) {
-                null
+                bitmap = null
             }
         }
     }
@@ -57,7 +82,7 @@ actual fun MemberImage(
     ) {
         if (bitmap != null) {
             Image(
-                bitmap = bitmap.asImageBitmap(),
+                bitmap = bitmap!!,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

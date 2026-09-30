@@ -23,25 +23,20 @@ actual object FileUtils {
 
     fun salvarFotoInterna(context: Context, uri: Uri): String? {
         return try {
-            val pasta = File(context.filesDir, "fotos_membros")
-            if (!pasta.exists()) pasta.mkdirs()
-
-            val nomeArquivo = "foto_${UUID.randomUUID()}.jpg"
-            val arquivoDestino = File(pasta, nomeArquivo)
-
             context.contentResolver.openInputStream(uri)?.use { input ->
                 val bitmapOriginal = BitmapFactory.decodeStream(input) ?: return null
                 val bitmapCorrigido = corrigirRotacao(context, uri, bitmapOriginal)
-                val bitmapTratado = redimensionar(bitmapCorrigido, 500)
+                val bitmapTratado = redimensionar(bitmapCorrigido, 250)
 
-                FileOutputStream(arquivoDestino).use { output ->
-                    bitmapTratado.compress(Bitmap.CompressFormat.JPEG, 80, output)
-                }
+                val outputStream = java.io.ByteArrayOutputStream()
+                bitmapTratado.compress(Bitmap.CompressFormat.JPEG, 75, outputStream)
+                val imageBytes = outputStream.toByteArray()
 
                 if (bitmapOriginal != bitmapTratado) bitmapOriginal.recycle()
                 if (bitmapCorrigido != bitmapTratado) bitmapCorrigido.recycle()
-                
-                return arquivoDestino.absolutePath
+
+                val base64String = android.util.Base64.encodeToString(imageBytes, android.util.Base64.NO_WRAP)
+                return "data:image/jpeg;base64,$base64String"
             }
             null
         } catch (_: Exception) {
