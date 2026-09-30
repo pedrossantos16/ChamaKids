@@ -1,6 +1,6 @@
 {
-  "versionCode": 14,
-  "versionName": "1.1.4",
-  "apkUrl": "https://github.com/pedrossantos16/ChamaKids/releases/download/v1.1.4/composeApp-release.apk",
-  "releaseNotes": "ERRRO DA EDIÇÃO DA FOTO DE CADA MEMBRO; VERIFICADO CONDIÇÃO DE REABRIR APP PARA ATUALIZAR INFORMAÇÕES;"
+  "versionCode": 15,
+  "versionName": "1.1.5",
+  "apkUrl": "https://github.com/pedrossantos16/ChamaKids/releases/download/v1.1.5/composeApp-release.apk",
+  "releaseNotes": "EXIBIÇÃO DA FOTO DE PERFIL PARA TODOS OS DISPOSITIVOS;"
 }
